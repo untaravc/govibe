@@ -1,0 +1,11 @@
+.DS_Store
+.cache/
+.env
+/bin/
+/server
+/tmp/
+node_modules/
+public/dist/
+*.exe
+*.out
+/storages/logs/*.log
