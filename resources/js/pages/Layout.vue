@@ -8,7 +8,7 @@
       <div class="flex min-w-0 flex-col">
         <div v-if="sidebarOpen" class="fixed inset-0 z-20 bg-slate-900/40 md:hidden" @click="sidebarOpen = false"></div>
 
-        <main class="relative z-10 flex-1">
+        <main class="relative z-10 flex-1 p-4">
           <div class="mb-6">
             <p class="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">Admin</p>
             <h2 class="mt-1 text-2xl font-semibold tracking-tight">{{ pageTitle }}</h2>

@@ -3,21 +3,28 @@ import { createRouter, createWebHistory } from "vue-router";
 const routes = [
   {
     path: "/",
-    name: "home",
-    component: () => import("./pages/Home.vue")
-  },
-  {
-    path: "/auth/login",
-    name: "login",
-    component: () => import("./pages/auth/Login.vue")
-  },
-  {
-    path: "/auth/register",
-    name: "register",
-    component: () => import("./pages/auth/Register.vue")
+    component: () => import("./pages/PublicLayout.vue"),
+    children: [
+      {
+        path: "",
+        name: "home",
+        component: () => import("./pages/auth/Home.vue")
+      },
+      {
+        path: "auth/login",
+        name: "login",
+        component: () => import("./pages/auth/Login.vue")
+      },
+      {
+        path: "auth/register",
+        name: "register",
+        component: () => import("./pages/auth/Register.vue")
+      }
+    ]
   },
   {
     path: "/admin",
+    meta: { requiresAuth: true },
     component: () => import("./pages/Layout.vue"),
     children: [
       {
@@ -47,6 +54,29 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes
+});
+
+function getToken() {
+  try {
+    return localStorage.getItem("token") || "";
+  } catch {
+    return "";
+  }
+}
+
+router.beforeEach((to) => {
+  const requiresAuth = to.matched.some((record) => record.meta && record.meta.requiresAuth);
+  if (!requiresAuth) return true;
+
+  const hasToken = getToken().trim().length > 0;
+  if (hasToken) return true;
+
+  return {
+    name: "login",
+    query: {
+      redirect: to.fullPath
+    }
+  };
 });
 
 export default router;

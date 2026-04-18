@@ -4,6 +4,7 @@ import (
 	"log"
 
 	accessmiddleware "govibe/app/Http/Middleware/AccessMiddleware"
+	"govibe/app/Http/Response"
 	"govibe/configs"
 	"govibe/routes"
 
@@ -17,8 +18,9 @@ func main() {
 	views := html.New("./resources/views", ".html")
 
 	app := fiber.New(fiber.Config{
-		AppName: "govibe",
-		Views:   views,
+		AppName:      "govibe",
+		Views:        views,
+		ErrorHandler: response.ErrorHandler(),
 	})
 
 	app.Use(recover.New())

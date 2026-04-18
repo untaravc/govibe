@@ -122,7 +122,7 @@ async function onSubmit() {
     }
 
     if (res.status === 422 && json && typeof json === "object") {
-      fieldErrors.value = json.errors || {};
+      fieldErrors.value = json?.result?.errors || {};
       message.value = json.message || "Validation error";
       messageTone.value = "error";
       return;
@@ -138,4 +138,3 @@ async function onSubmit() {
   }
 }
 </script>
-

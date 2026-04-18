@@ -15,6 +15,9 @@
             class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-900 shadow-sm outline-none ring-slate-900/10 placeholder:text-slate-400 focus:border-slate-300 focus:ring-4 dark:border-white/10 dark:bg-slate-950 dark:text-slate-50 dark:placeholder:text-slate-500"
             required
           />
+          <p v-if="fieldErrors.email" class="mt-2 text-sm text-rose-600 dark:text-rose-400">
+            {{ fieldErrors.email }}
+          </p>
         </div>
 
         <div>
@@ -27,11 +30,10 @@
             class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-900 shadow-sm outline-none ring-slate-900/10 placeholder:text-slate-400 focus:border-slate-300 focus:ring-4 dark:border-white/10 dark:bg-slate-950 dark:text-slate-50 dark:placeholder:text-slate-500"
             required
           />
+          <p v-if="fieldErrors.password" class="mt-2 text-sm text-rose-600 dark:text-rose-400">
+            {{ fieldErrors.password }}
+          </p>
         </div>
-
-        <p v-if="message" class="text-sm" :class="messageToneClass">
-          {{ message }}
-        </p>
 
         <div class="flex items-center justify-between">
           <label class="inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
@@ -86,6 +88,8 @@ const messageToneClass = computed(() => {
   if (messageTone.value === "error") return "text-rose-700 dark:text-rose-300";
   return "text-slate-700 dark:text-slate-200";
 });
+
+const fieldErrors = computed(() => auth.fieldErrors || {});
 
 async function onSubmit() {
   message.value = "";

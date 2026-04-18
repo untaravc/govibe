@@ -1,8 +1,21 @@
 <template>
   <div class="space-y-4">
     <div class="rounded-xl border border-slate-200/60 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-900">
-      <h2 class="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">Dashboard</h2>
-      <p class="mt-1 text-slate-600 dark:text-slate-300">Fiber backend + Vue + Tailwind CSS (compiled by Vite).</p>
+      <h2 class="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">GoVibe</h2>
+      <p class="mt-1 text-slate-600 dark:text-slate-300">
+        Go (Fiber) backend with a Vue 3 + Vite + Tailwind frontend. Includes public auth pages and an admin dashboard area.
+      </p>
+      <p class="mt-3 text-sm text-slate-600 dark:text-slate-300">
+        Repository:
+        <a
+          href="https://github.com/untaravc/govibe"
+          target="_blank"
+          rel="noreferrer"
+          class="font-medium text-slate-900 underline underline-offset-2 hover:text-slate-700 dark:text-slate-50 dark:hover:text-white"
+        >
+          github.com/untaravc/govibe
+        </a>
+      </p>
     </div>
 
     <div class="rounded-xl border border-slate-200/60 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-900">
@@ -28,10 +41,9 @@ async function callHealth() {
   try {
     const res = await fetch("/api/health");
     const json = await res.json();
-    output.value = JSON.stringify(json, null, 2);
+    output.value = JSON.stringify(json?.result ?? json, null, 2);
   } catch (err) {
     output.value = String(err);
   }
 }
 </script>
-

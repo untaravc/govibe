@@ -1,5 +1,7 @@
 import { defineStore } from "pinia";
 
+import { apiErrorMessage, apiFieldErrors } from "../utils/apiError.js";
+
 const STORAGE_KEY = "govibe.auth";
 
 export const useAuthStore = defineStore("auth", {
@@ -7,7 +9,8 @@ export const useAuthStore = defineStore("auth", {
     token: "",
     user: null,
     loading: false,
-    error: ""
+    error: "",
+    fieldErrors: {}
   }),
   getters: {
     isAuthenticated: (state) => Boolean(state.token)
@@ -50,6 +53,7 @@ export const useAuthStore = defineStore("auth", {
     async login(email, password) {
       this.loading = true;
       this.error = "";
+      this.fieldErrors = {};
 
       try {
         const res = await fetch("/api/login", {
@@ -60,12 +64,14 @@ export const useAuthStore = defineStore("auth", {
 
         const json = await res.json().catch(() => null);
         if (!res.ok) {
-          this.error = (json && json.message) || `Login failed (${res.status})`;
+          this.fieldErrors = apiFieldErrors(json);
+          this.error = apiErrorMessage(json, `Login failed (${res.status})`);
           return false;
         }
 
-        this.token = typeof json?.token === "string" ? json.token : "";
-        this.user = json?.user ?? null;
+        const result = json?.result ?? {};
+        this.token = typeof result?.token === "string" ? result.token : "";
+        this.user = result?.user ?? null;
 
         if (!this.token) {
           this.error = "Login failed: missing token";
@@ -86,4 +92,3 @@ export const useAuthStore = defineStore("auth", {
     }
   }
 });
-

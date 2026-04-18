@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"govibe/app/Models"
+	"govibe/app/Http/Response"
 	appvalidator "govibe/app/Validator"
 	"govibe/configs"
 
@@ -33,9 +34,8 @@ func (ctl *AuthController) Login(c *fiber.Ctx) error {
 	req.Password = strings.TrimSpace(req.Password)
 
 	if errs := appvalidator.Validate(req); len(errs) > 0 {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
-			"message": "validation error",
-			"errors":  errs,
+		return response.Error(c, fiber.StatusUnprocessableEntity, "validation error", fiber.Map{
+			"errors": errs,
 		})
 	}
 
@@ -71,7 +71,7 @@ func (ctl *AuthController) Login(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(fiber.Map{
+	return response.OK(c, "ok", fiber.Map{
 		"token":        signed,
 		"token_type":   "Bearer",
 		"expires_at":   expiresAt.UTC().Format(time.RFC3339),
@@ -91,9 +91,8 @@ func (ctl *AuthController) Register(c *fiber.Ctx) error {
 	req.Password = strings.TrimSpace(req.Password)
 
 	if errs := appvalidator.Validate(req); len(errs) > 0 {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
-			"message": "validation error",
-			"errors":  errs,
+		return response.Error(c, fiber.StatusUnprocessableEntity, "validation error", fiber.Map{
+			"errors": errs,
 		})
 	}
 
@@ -119,7 +118,9 @@ func (ctl *AuthController) Register(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(u)
+	return response.Created(c, "created", fiber.Map{
+		"user": u,
+	})
 }
 
 func (ctl *AuthController) Profile(c *fiber.Ctx) error {
@@ -150,7 +151,7 @@ func (ctl *AuthController) Profile(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "invalid token")
 	}
 
-	return c.JSON(fiber.Map{
+	return response.OK(c, "ok", fiber.Map{
 		"claims": claims,
 	})
 }

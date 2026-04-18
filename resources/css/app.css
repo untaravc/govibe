@@ -1,5 +1,13 @@
+@config "../../tailwind.config.js";
 @import "tailwindcss";
 
 :root {
   color-scheme: light;
+}
+
+@layer base {
+  html,
+  body {
+    @apply bg-slate-50 text-slate-900;
+  }
 }

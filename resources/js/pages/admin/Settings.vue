@@ -2,7 +2,7 @@
   <div class="space-y-4">
     <div class="rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-900">
       <h3 class="text-lg font-semibold tracking-tight">Settings</h3>
-      <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">Dummy settings form.</p>
+      <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">Dummy settings form</p>
 
       <form class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div class="sm:col-span-2">

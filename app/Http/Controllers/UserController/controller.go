@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 
+	"govibe/app/Http/Response"
 	"govibe/app/Models"
 	"govibe/app/Parser"
 	appvalidator "govibe/app/Validator"
@@ -26,7 +27,9 @@ func (ctl *UserController) Index(c *fiber.Ctx) error {
 	if err := ctl.db.Order("id desc").Find(&users).Error; err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
-	return c.JSON(users)
+	return response.OK(c, "ok", fiber.Map{
+		"users": users,
+	})
 }
 
 func (ctl *UserController) Show(c *fiber.Ctx) error {
@@ -39,7 +42,9 @@ func (ctl *UserController) Show(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	return c.JSON(u)
+	return response.OK(c, "ok", fiber.Map{
+		"user": u,
+	})
 }
 
 func (ctl *UserController) Store(c *fiber.Ctx) error {
@@ -52,9 +57,8 @@ func (ctl *UserController) Store(c *fiber.Ctx) error {
 	req.Email = strings.TrimSpace(req.Email)
 
 	if errs := appvalidator.Validate(req); len(errs) > 0 {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
-			"message": "validation error",
-			"errors":  errs,
+		return response.Error(c, fiber.StatusUnprocessableEntity, "validation error", fiber.Map{
+			"errors": errs,
 		})
 	}
 
@@ -73,7 +77,9 @@ func (ctl *UserController) Store(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(u)
+	return response.Created(c, "created", fiber.Map{
+		"user": u,
+	})
 }
 
 func (ctl *UserController) Update(c *fiber.Ctx) error {
@@ -97,9 +103,8 @@ func (ctl *UserController) Update(c *fiber.Ctx) error {
 	}
 
 	if errs := appvalidator.Validate(req); len(errs) > 0 {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
-			"message": "validation error",
-			"errors":  errs,
+		return response.Error(c, fiber.StatusUnprocessableEntity, "validation error", fiber.Map{
+			"errors": errs,
 		})
 	}
 
@@ -137,7 +142,9 @@ func (ctl *UserController) Update(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	return c.JSON(u)
+	return response.OK(c, "ok", fiber.Map{
+		"user": u,
+	})
 }
 
 func (ctl *UserController) Destroy(c *fiber.Ctx) error {
@@ -154,7 +161,9 @@ func (ctl *UserController) Destroy(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusNotFound, "user not found")
 	}
 
-	return c.SendStatus(fiber.StatusNoContent)
+	return response.OK(c, "deleted", fiber.Map{
+		"deleted": true,
+	})
 }
 
 func (ctl *UserController) getByID(id uint) (models.User, error) {

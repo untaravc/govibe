@@ -3,6 +3,7 @@ package routes
 import (
 	authcontroller "govibe/app/Http/Controllers/AuthController"
 	usercontroller "govibe/app/Http/Controllers/UserController"
+	"govibe/app/Http/Response"
 
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
@@ -11,7 +12,7 @@ import (
 func RegisterAPI(app *fiber.App, db *gorm.DB) {
 	api := app.Group("/api")
 	api.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{"status": "ok"})
+		return response.OK(c, "ok", fiber.Map{"status": "ok"})
 	})
 
 	authController := authcontroller.New(db)
