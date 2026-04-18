@@ -1,12 +1,17 @@
 package authcontroller
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
+	"fmt"
+	"math/big"
 	"strings"
 	"time"
 
-	"govibe/app/Models"
 	"govibe/app/Http/Response"
+	"govibe/app/Models"
+	"govibe/app/Service"
 	appvalidator "govibe/app/Validator"
 	"govibe/configs"
 
@@ -154,4 +159,111 @@ func (ctl *AuthController) Profile(c *fiber.Ctx) error {
 	return response.OK(c, "ok", fiber.Map{
 		"claims": claims,
 	})
+}
+
+func (ctl *AuthController) RequestResetPassword(c *fiber.Ctx) error {
+	var req requestResetPasswordRequest
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid json body")
+	}
+
+	req.Email = strings.TrimSpace(req.Email)
+	req.Phone = strings.TrimSpace(req.Phone)
+
+	if errs := appvalidator.Validate(req); len(errs) > 0 {
+		return response.Error(c, fiber.StatusUnprocessableEntity, "validation error", fiber.Map{
+			"errors": errs,
+		})
+	}
+
+	if req.Email == "" && req.Phone == "" {
+		return response.Error(c, fiber.StatusUnprocessableEntity, "validation error", fiber.Map{
+			"errors": fiber.Map{
+				"email": "is required",
+				"phone": "is required",
+			},
+		})
+	}
+	if req.Email != "" && req.Phone != "" {
+		return response.Error(c, fiber.StatusUnprocessableEntity, "validation error", fiber.Map{
+			"errors": fiber.Map{
+				"email": "provide either email or phone",
+				"phone": "provide either email or phone",
+			},
+		})
+	}
+
+	// Avoid user enumeration: respond OK even when the account doesn't exist.
+	if req.Email != "" {
+		var u models.User
+		if err := ctl.db.Where("email = ?", req.Email).First(&u).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return response.OK(c, "if the account exists, a reset token has been sent", fiber.Map{})
+			}
+			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		}
+
+		token, err := randomHexString(60)
+		if err != nil {
+			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		}
+
+		if err := ctl.db.Model(&models.User{}).Where("id = ?", u.ID).Update("email_token", token).Error; err != nil {
+			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		}
+
+		title := "GoVibe password reset"
+		body := fmt.Sprintf("Your reset token:\n\n%s\n", token)
+		if err := service.SendEmail(req.Email, title, body); err != nil {
+			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		}
+
+		return response.OK(c, "reset token sent", fiber.Map{})
+	}
+
+	var u models.User
+	if err := ctl.db.Where("phone = ?", req.Phone).First(&u).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return response.OK(c, "if the account exists, a reset token has been sent", fiber.Map{})
+		}
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	code, err := randomNumericString(6)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	if err := ctl.db.Model(&models.User{}).Where("id = ?", u.ID).Update("phone_token", code).Error; err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	if err := service.SendWhatsAppMessage(req.Phone, fmt.Sprintf("Your reset code:\n\n%s\n", code)); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	return response.OK(c, "reset token sent", fiber.Map{})
+}
+
+func randomHexString(length int) (string, error) {
+	if length <= 0 || length%2 != 0 {
+		return "", errors.New("length must be a positive even number")
+	}
+	b := make([]byte, length/2)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
+}
+
+func randomNumericString(length int) (string, error) {
+	if length <= 0 {
+		return "", errors.New("length must be positive")
+	}
+	max := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(length)), nil) // 10^length
+	n, err := rand.Int(rand.Reader, max)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%0*d", length, n.Int64()), nil
 }

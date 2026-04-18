@@ -76,8 +76,8 @@
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
+import api from "../../api.js";
 import { apiErrorMessage, apiFieldErrors } from "../../utils/apiError.js";
-import { apiFetch } from "../../utils/apiFetch.js";
 
 const router = useRouter();
 const route = useRoute();
@@ -109,8 +109,7 @@ async function loadRole() {
   fieldErrors.value = {};
 
   try {
-    const res = await apiFetch(`/api/roles/${id.value}`);
-    const json = await res.json().catch(() => null);
+    const { res, json } = await api.get(`/api/roles/${id.value}`, { auth: true });
     if (!res.ok) {
       message.value = apiErrorMessage(json, `Request failed (${res.status})`);
       messageTone.value = "error";
@@ -142,13 +141,9 @@ async function onSubmit() {
       status: Number(status.value)
     };
 
-    const res = await apiFetch(isEdit.value ? `/api/roles/${id.value}` : "/api/roles", {
-      method: isEdit.value ? "PUT" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-
-    const json = await res.json().catch(() => null);
+    const { res, json } = isEdit.value
+      ? await api.put(`/api/roles/${id.value}`, body, { auth: true })
+      : await api.post("/api/roles", body, { auth: true });
     if (!res.ok) {
       fieldErrors.value = apiFieldErrors(json);
       message.value = apiErrorMessage(json, `Request failed (${res.status})`);
@@ -171,4 +166,3 @@ onMounted(() => {
   loadRole();
 });
 </script>
-

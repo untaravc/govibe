@@ -44,7 +44,9 @@
             />
             Remember me
           </label>
-          <a href="#" class="text-sm font-medium text-slate-900 hover:underline dark:text-slate-50">Forgot password?</a>
+          <RouterLink to="/auth/forgot-password" class="text-sm font-medium text-slate-900 hover:underline dark:text-slate-50">
+            Forgot password?
+          </RouterLink>
         </div>
 
         <button

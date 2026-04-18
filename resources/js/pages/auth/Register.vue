@@ -77,7 +77,7 @@
 import { computed, ref } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 
-import { apiFetch } from "../../utils/apiFetch.js";
+import api from "../../api.js";
 
 const router = useRouter();
 
@@ -104,17 +104,15 @@ async function onSubmit() {
   loading.value = true;
 
   try {
-    const res = await apiFetch("/api/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const { res, json } = await api.post(
+      "/api/register",
+      {
         name: name.value,
         email: email.value,
         password: password.value
-      })
-    });
-
-    const json = await res.json().catch(() => null);
+      },
+      { auth: false }
+    );
 
     if (res.status === 201) {
       message.value = "Account created. Redirecting to login...";

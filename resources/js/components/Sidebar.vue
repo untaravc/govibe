@@ -56,6 +56,7 @@
 import { RouterLink } from "vue-router";
 
 import viewDashboardOutline from "@iconify/icons-mdi/view-dashboard-outline";
+import fileDocumentEditOutline from "@iconify/icons-mdi/file-document-edit-outline";
 import accountMultipleOutline from "@iconify/icons-mdi/account-multiple-outline";
 import shieldAccountOutline from "@iconify/icons-mdi/shield-account-outline";
 import cogOutline from "@iconify/icons-mdi/cog-outline";
@@ -75,6 +76,7 @@ defineEmits(["close"]);
 
 const menu = [
   { label: "Dashboard", to: "/admin", icon: viewDashboardOutline },
+  { label: "Post", to: "/admin/posts", icon: fileDocumentEditOutline },
   { label: "User", to: "/admin/users", icon: accountMultipleOutline },
   { label: "Role", to: "/admin/roles", icon: shieldAccountOutline },
   { label: "Setting", to: "/admin/settings", icon: cogOutline }

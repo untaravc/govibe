@@ -19,6 +19,31 @@ const routes = [
         path: "auth/register",
         name: "register",
         component: () => import("./pages/auth/Register.vue")
+      },
+      {
+        path: "auth/forgot-password",
+        name: "forgot_password",
+        component: () => import("./pages/auth/ForgotPassword.vue")
+      },
+      {
+        path: "auth/unauthenticated",
+        name: "unauthenticated",
+        component: () => import("./pages/auth/Unauthenticated.vue")
+      },
+      {
+        path: "auth/unauthorized",
+        name: "unauthorized",
+        component: () => import("./pages/auth/Unauthorized.vue")
+      },
+      {
+        path: "auth/not-found",
+        name: "not_found",
+        component: () => import("./pages/auth/NotFound.vue")
+      },
+      {
+        path: ":pathMatch(.*)*",
+        name: "notfound",
+        component: () => import("./pages/auth/NotFound.vue")
       }
     ]
   },
@@ -61,6 +86,21 @@ const routes = [
         path: "roles/:id/edit",
         name: "admin.roles.edit",
         component: () => import("./pages/roles/AddEdit.vue")
+      },
+      {
+        path: "posts",
+        name: "admin.posts",
+        component: () => import("./pages/posts/Index.vue")
+      },
+      {
+        path: "posts/new",
+        name: "admin.posts.create",
+        component: () => import("./pages/posts/AddCreate.vue")
+      },
+      {
+        path: "posts/:id/edit",
+        name: "admin.posts.edit",
+        component: () => import("./pages/posts/AddCreate.vue")
       },
       {
         path: "settings",

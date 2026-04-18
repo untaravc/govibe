@@ -81,8 +81,8 @@ import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import Swal from "sweetalert2";
 
+import api from "../../api.js";
 import { apiErrorMessage, apiFieldErrors } from "../../utils/apiError.js";
-import { apiFetch } from "../../utils/apiFetch.js";
 
 const router = useRouter();
 const route = useRoute();
@@ -114,8 +114,7 @@ async function loadUser() {
   fieldErrors.value = {};
 
   try {
-    const res = await apiFetch(`/api/users/${id.value}`);
-    const json = await res.json().catch(() => null);
+    const { res, json } = await api.get(`/api/users/${id.value}`, { auth: true });
     if (!res.ok) {
       message.value = apiErrorMessage(json, `Request failed (${res.status})`);
       messageTone.value = "error";
@@ -149,13 +148,9 @@ async function onSubmit() {
       body.password = password.value;
     }
 
-    const res = await apiFetch(isEdit.value ? `/api/users/${id.value}` : "/api/users", {
-      method: isEdit.value ? "PUT" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-
-    const json = await res.json().catch(() => null);
+    const { res, json } = isEdit.value
+      ? await api.put(`/api/users/${id.value}`, body, { auth: true })
+      : await api.post("/api/users", body, { auth: true });
     if (!res.ok) {
       fieldErrors.value = apiFieldErrors(json);
       message.value = apiErrorMessage(json, `Request failed (${res.status})`);

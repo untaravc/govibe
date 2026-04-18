@@ -128,8 +128,8 @@ import { useRouter } from "vue-router";
 
 import Modal from "../../components/Modal.vue";
 import PaginationNav from "../../components/PaginationNav.vue";
+import api from "../../api.js";
 import { apiErrorMessage } from "../../utils/apiError.js";
-import { apiFetch } from "../../utils/apiFetch.js";
 
 const router = useRouter();
 
@@ -166,8 +166,7 @@ async function loadUsers() {
   message.value = "";
   messageTone.value = "neutral";
   try {
-    const res = await apiFetch(`/api/users?per_page=${perPage.value}&page=${page.value}`);
-    const json = await res.json().catch(() => null);
+    const { res, json } = await api.get(`/api/users?per_page=${perPage.value}&page=${page.value}`, { auth: true });
     if (!res.ok) {
       message.value = apiErrorMessage(json, `Request failed (${res.status})`);
       messageTone.value = "error";
@@ -192,8 +191,7 @@ async function onDelete(u) {
   message.value = "";
   messageTone.value = "neutral";
   try {
-    const res = await apiFetch(`/api/users/${u.id}`, { method: "DELETE" });
-    const json = await res.json().catch(() => null);
+    const { res, json } = await api.delete(`/api/users/${u.id}`, { auth: true });
     if (!res.ok) {
       message.value = apiErrorMessage(json, `Delete failed (${res.status})`);
       messageTone.value = "error";

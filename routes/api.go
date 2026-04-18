@@ -2,7 +2,9 @@ package routes
 
 import (
 	authcontroller "govibe/app/Http/Controllers/AuthController"
+	categorycontroller "govibe/app/Http/Controllers/CategoryController"
 	mediacontroller "govibe/app/Http/Controllers/MediaController"
+	postcontroller "govibe/app/Http/Controllers/PostController"
 	rolecontroller "govibe/app/Http/Controllers/RoleController"
 	usercontroller "govibe/app/Http/Controllers/UserController"
 	"govibe/app/Http/Response"
@@ -20,6 +22,7 @@ func RegisterAPI(app *fiber.App, db *gorm.DB) {
 	authController := authcontroller.New(db)
 	api.Post("/register", authController.Register)
 	api.Post("/login", authController.Login)
+	api.Post("/request-reset-password", authController.RequestResetPassword)
 	api.Get("/profile", authController.Profile)
 
 	mediaController := mediacontroller.New()
@@ -40,4 +43,20 @@ func RegisterAPI(app *fiber.App, db *gorm.DB) {
 	roles.Post("/", roleController.Store)
 	roles.Put("/:id", roleController.Update)
 	roles.Delete("/:id", roleController.Destroy)
+
+	postController := postcontroller.New(db)
+	posts := api.Group("/posts")
+	posts.Get("/", postController.Index)
+	posts.Get("/:id", postController.Show)
+	posts.Post("/", postController.Store)
+	posts.Put("/:id", postController.Update)
+	posts.Delete("/:id", postController.Destroy)
+
+	categoryController := categorycontroller.New(db)
+	categories := api.Group("/categories")
+	categories.Get("/", categoryController.Index)
+	categories.Get("/:id", categoryController.Show)
+	categories.Post("/", categoryController.Store)
+	categories.Put("/:id", categoryController.Update)
+	categories.Delete("/:id", categoryController.Destroy)
 }

@@ -10,3 +10,8 @@ type registerRequest struct {
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=8,max=191"`
 }
+
+type requestResetPasswordRequest struct {
+	Email string `json:"email" validate:"omitempty,email,max=191"`
+	Phone string `json:"phone" validate:"omitempty,min=6,max=64"`
+}
