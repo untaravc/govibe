@@ -35,12 +35,32 @@ const routes = [
       {
         path: "users",
         name: "admin.users",
-        component: () => import("./pages/admin/Users.vue")
+        component: () => import("./pages/users/Index.vue")
+      },
+      {
+        path: "users/new",
+        name: "admin.users.create",
+        component: () => import("./pages/users/AddCreate.vue")
+      },
+      {
+        path: "users/:id/edit",
+        name: "admin.users.edit",
+        component: () => import("./pages/users/AddCreate.vue")
       },
       {
         path: "roles",
         name: "admin.roles",
-        component: () => import("./pages/admin/Roles.vue")
+        component: () => import("./pages/roles/Index.vue")
+      },
+      {
+        path: "roles/new",
+        name: "admin.roles.create",
+        component: () => import("./pages/roles/AddEdit.vue")
+      },
+      {
+        path: "roles/:id/edit",
+        name: "admin.roles.edit",
+        component: () => import("./pages/roles/AddEdit.vue")
       },
       {
         path: "settings",

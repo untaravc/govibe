@@ -2,6 +2,8 @@ package usercontroller
 
 import (
 	"errors"
+	"math"
+	"strconv"
 	"strings"
 
 	"govibe/app/Http/Response"
@@ -23,12 +25,43 @@ func New(db *gorm.DB) *UserController {
 }
 
 func (ctl *UserController) Index(c *fiber.Ctx) error {
-	var users []models.User
-	if err := ctl.db.Order("id desc").Find(&users).Error; err != nil {
+	perPage := parsePositiveIntQuery(c, "per_page", 10)
+	if perPage > 100 {
+		perPage = 100
+	}
+
+	page := parsePositiveIntQuery(c, "page", 1)
+
+	var total int64
+	if err := ctl.db.Model(&models.User{}).Count(&total).Error; err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
+
+	offset := (page - 1) * perPage
+	if offset < 0 {
+		offset = 0
+	}
+
+	var users []models.User
+	if err := ctl.db.Order("id desc").Limit(perPage).Offset(offset).Find(&users).Error; err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	totalPages := 0
+	if perPage > 0 && total > 0 {
+		totalPages = int(math.Ceil(float64(total) / float64(perPage)))
+	}
+
 	return response.OK(c, "ok", fiber.Map{
 		"users": users,
+		"meta": fiber.Map{
+			"page":        page,
+			"per_page":    perPage,
+			"total":       total,
+			"total_pages": totalPages,
+			"has_prev":    page > 1,
+			"has_next":    totalPages > 0 && page < totalPages,
+		},
 	})
 }
 
@@ -178,3 +211,15 @@ func (ctl *UserController) getByID(id uint) (models.User, error) {
 }
 
 // param parsing lives in app/Parser
+
+func parsePositiveIntQuery(c *fiber.Ctx, key string, fallback int) int {
+	raw := strings.TrimSpace(c.Query(key))
+	if raw == "" {
+		return fallback
+	}
+	v, err := strconv.Atoi(raw)
+	if err != nil || v <= 0 {
+		return fallback
+	}
+	return v
+}

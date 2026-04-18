@@ -3,6 +3,28 @@
 
 :root {
   color-scheme: light;
+
+  --color-primary: 37 99 235;
+  --color-primary-foreground: 255 255 255;
+
+  --color-secondary: 15 23 42;
+  --color-secondary-foreground: 255 255 255;
+
+  --color-accent: 15 118 110;
+  --color-accent-foreground: 255 255 255;
+
+  --color-muted: 241 245 249;
+  --color-muted-foreground: 100 116 139;
+
+  --color-surface: 255 255 255;
+  --color-surface-foreground: 15 23 42;
+
+  --color-border: 226 232 240;
+  --color-ring: var(--color-primary);
+
+  --color-success: 22 163 74;
+  --color-warning: 245 158 11;
+  --color-danger: 225 29 72;
 }
 
 @layer base {

@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 
 import { apiErrorMessage, apiFieldErrors } from "../utils/apiError.js";
+import { apiFetch } from "../utils/apiFetch.js";
 
 const STORAGE_KEY = "govibe.auth";
 
@@ -56,7 +57,7 @@ export const useAuthStore = defineStore("auth", {
       this.fieldErrors = {};
 
       try {
-        const res = await fetch("/api/login", {
+        const res = await apiFetch("/api/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password })

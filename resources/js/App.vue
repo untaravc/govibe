@@ -1,4 +1,5 @@
 <template>
+  <PageLoader />
   <RouterView />
 </template>
 

@@ -35,7 +35,7 @@
           <span
             class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm dark:border-white/10 dark:bg-slate-900 dark:text-slate-200"
           >
-            <component :is="item.icon" class="h-5 w-5" />
+            <Icon :icon="item.icon" class="h-5 w-5" />
           </span>
           <span v-if="!collapsed" class="truncate">{{ item.label }}</span>
         </RouterLink>
@@ -55,6 +55,11 @@
 <script setup>
 import { RouterLink } from "vue-router";
 
+import viewDashboardOutline from "@iconify/icons-mdi/view-dashboard-outline";
+import accountMultipleOutline from "@iconify/icons-mdi/account-multiple-outline";
+import shieldAccountOutline from "@iconify/icons-mdi/shield-account-outline";
+import cogOutline from "@iconify/icons-mdi/cog-outline";
+
 defineProps({
   open: {
     type: Boolean,
@@ -68,23 +73,10 @@ defineProps({
 
 defineEmits(["close"]);
 
-const IconDashboard = {
-  template: `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 13.5V20a1 1 0 0 0 1 1h5v-7.5H4Zm10 7.5h5a1 1 0 0 0 1-1v-10h-6v11ZM4 10h6V4H5a1 1 0 0 0-1 1v5Zm10-6v3.5h6V5a1 1 0 0 0-1-1h-5Z" fill="currentColor"/></svg>`
-};
-const IconUsers = {
-  template: `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0ZM4 20a6 6 0 0 1 12 0v1H4v-1Zm14.5-4.5a3 3 0 0 0-1.1.2 7.9 7.9 0 0 1 2.6 5.3h2v-.8a4.7 4.7 0 0 0-3.5-4.7Z" fill="currentColor"/></svg>`
-};
-const IconShield = {
-  template: `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2 4 5.5V11c0 5.2 3.4 9.9 8 11 4.6-1.1 8-5.8 8-11V5.5L12 2Zm0 18c-3.3-1-6-4.8-6-9V6.7l6-2.6 6 2.6V11c0 4.2-2.7 8-6 9Z" fill="currentColor"/></svg>`
-};
-const IconSettings = {
-  template: `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M19.4 13a7.7 7.7 0 0 0 .1-1 7.7 7.7 0 0 0-.1-1l2-1.6a.7.7 0 0 0 .2-.9l-1.9-3.3a.7.7 0 0 0-.9-.3l-2.3.9a7.1 7.1 0 0 0-1.7-1l-.3-2.5a.7.7 0 0 0-.7-.6h-3.8a.7.7 0 0 0-.7.6l-.3 2.5a7.1 7.1 0 0 0-1.7 1l-2.3-.9a.7.7 0 0 0-.9.3L2.4 7.5a.7.7 0 0 0 .2.9l2 1.6a7.7 7.7 0 0 0-.1 1 7.7 7.7 0 0 0 .1 1l-2 1.6a.7.7 0 0 0-.2.9l1.9 3.3c.2.3.6.4.9.3l2.3-.9c.5.4 1.1.7 1.7 1l.3 2.5c0 .3.3.6.7.6h3.8c.3 0 .7-.3.7-.6l.3-2.5c.6-.3 1.2-.6 1.7-1l2.3.9c.3.1.7 0 .9-.3l1.9-3.3a.7.7 0 0 0-.2-.9l-2-1.6ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z" fill="currentColor"/></svg>`
-};
-
 const menu = [
-  { label: "Dashboard", to: "/admin", icon: IconDashboard },
-  { label: "User", to: "/admin/users", icon: IconUsers },
-  { label: "Role", to: "/admin/roles", icon: IconShield },
-  { label: "Setting", to: "/admin/settings", icon: IconSettings }
+  { label: "Dashboard", to: "/admin", icon: viewDashboardOutline },
+  { label: "User", to: "/admin/users", icon: accountMultipleOutline },
+  { label: "Role", to: "/admin/roles", icon: shieldAccountOutline },
+  { label: "Setting", to: "/admin/settings", icon: cogOutline }
 ];
 </script>

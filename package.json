@@ -6,7 +6,10 @@
     "build": "vite build"
   },
   "dependencies": {
+    "@iconify/icons-mdi": "^1.2.48",
+    "@iconify/vue": "^5.0.0",
     "pinia": "^3.0.4",
+    "sweetalert2": "^11.26.24",
     "vue": "^3.5.0",
     "vue-router": "^4.6.4"
   },

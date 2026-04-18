@@ -34,12 +34,14 @@
 <script setup>
 import { ref } from "vue";
 
+import { apiFetch } from "../../utils/apiFetch.js";
+
 const output = ref("");
 
 async function callHealth() {
   output.value = "Loading...";
   try {
-    const res = await fetch("/api/health");
+    const res = await apiFetch("/api/health");
     const json = await res.json();
     output.value = JSON.stringify(json?.result ?? json, null, 2);
   } catch (err) {

@@ -77,6 +77,8 @@
 import { computed, ref } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 
+import { apiFetch } from "../../utils/apiFetch.js";
+
 const router = useRouter();
 
 const name = ref("");
@@ -102,7 +104,7 @@ async function onSubmit() {
   loading.value = true;
 
   try {
-    const res = await fetch("/api/register", {
+    const res = await apiFetch("/api/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
