@@ -9,3 +9,5 @@ public/dist/
 *.exe
 *.out
 /storages/logs/*.log
+.idea/
+firebase-adminsdk.json

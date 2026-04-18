@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strconv"
 	"strings"
 	"time"
 
@@ -113,9 +114,11 @@ func (ctl *AuthController) Register(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
+	defaultRoleID := uint(1)
 	u := models.User{
 		Name:     req.Name,
 		Email:    req.Email,
+		RoleID:   &defaultRoleID,
 		Password: string(hash),
 	}
 
@@ -156,9 +159,128 @@ func (ctl *AuthController) Profile(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "invalid token")
 	}
 
+	userID, ok := parseJWTSubToUint(claims["sub"])
+	if !ok || userID == 0 {
+		return fiber.NewError(fiber.StatusUnauthorized, "invalid token subject")
+	}
+
+	var u models.User
+	if err := ctl.db.
+		Select("id", "name", "email", "phone", "image").
+		Where("id = ?", userID).
+		Where("deleted_at IS NULL").
+		First(&u).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fiber.NewError(fiber.StatusUnauthorized, "user not found")
+		}
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
 	return response.OK(c, "ok", fiber.Map{
-		"claims": claims,
+		"user": fiber.Map{
+			"name":  u.Name,
+			"email": u.Email,
+			"phone": u.Phone,
+			"image": u.Image,
+		},
 	})
+}
+
+func (ctl *AuthController) Logout(c *fiber.Ctx) error {
+	authHeader := strings.TrimSpace(c.Get("Authorization"))
+	if authHeader == "" {
+		return fiber.NewError(fiber.StatusUnauthorized, "missing bearer token")
+	}
+
+	parts := strings.Fields(authHeader)
+	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") || strings.TrimSpace(parts[1]) == "" {
+		return fiber.NewError(fiber.StatusUnauthorized, "invalid authorization header")
+	}
+	rawToken := parts[1]
+
+	jwtCfg, err := configs.LoadJWTConfig()
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	claims := jwt.MapClaims{}
+	token, err := jwt.ParseWithClaims(
+		rawToken,
+		claims,
+		func(t *jwt.Token) (any, error) { return []byte(jwtCfg.Secret), nil },
+		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+	)
+	if err != nil || token == nil || !token.Valid {
+		return fiber.NewError(fiber.StatusUnauthorized, "invalid token")
+	}
+
+	userID, ok := parseJWTSubToUint(claims["sub"])
+	if !ok || userID == 0 {
+		return fiber.NewError(fiber.StatusUnauthorized, "invalid token subject")
+	}
+
+	now := time.Now()
+	res := ctl.db.
+		Model(&models.User{}).
+		Where("id = ?", userID).
+		Where("deleted_at IS NULL").
+		Updates(map[string]any{
+			"refresh_token":            nil,
+			"refresh_token_expired_at": nil,
+			"refresh_token_updated_at": &now,
+		})
+	if res.Error != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, res.Error.Error())
+	}
+	if res.RowsAffected == 0 {
+		return fiber.NewError(fiber.StatusUnauthorized, "user not found")
+	}
+
+	return response.OK(c, "ok", fiber.Map{
+		"logged_out": true,
+	})
+}
+
+func parseJWTSubToUint(v any) (uint, bool) {
+	switch t := v.(type) {
+	case float64:
+		if t <= 0 {
+			return 0, false
+		}
+		return uint(t), true
+	case int:
+		if t <= 0 {
+			return 0, false
+		}
+		return uint(t), true
+	case int64:
+		if t <= 0 {
+			return 0, false
+		}
+		return uint(t), true
+	case uint:
+		if t == 0 {
+			return 0, false
+		}
+		return t, true
+	case uint64:
+		if t == 0 {
+			return 0, false
+		}
+		return uint(t), true
+	case string:
+		s := strings.TrimSpace(t)
+		if s == "" {
+			return 0, false
+		}
+		n, err := strconv.ParseUint(s, 10, 64)
+		if err != nil || n == 0 {
+			return 0, false
+		}
+		return uint(n), true
+	default:
+		return 0, false
+	}
 }
 
 func (ctl *AuthController) RequestResetPassword(c *fiber.Ctx) error {

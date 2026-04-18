@@ -1,7 +1,8 @@
 <template>
   <div
     v-if="ui.isApiLoading"
-    class="fixed inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur"
+    class="flex items-center justify-center bg-white/70 backdrop-blur"
+    :class="fullscreen ? 'fixed inset-0 z-50' : 'absolute inset-0 z-10 rounded-xl'"
     aria-live="polite"
     aria-busy="true"
   >
@@ -15,6 +16,12 @@
 <script setup>
 import { useUiStore } from "../store/ui.js";
 
+defineProps({
+  fullscreen: {
+    type: Boolean,
+    default: true
+  }
+});
+
 const ui = useUiStore();
 </script>
-

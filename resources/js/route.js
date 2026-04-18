@@ -88,6 +88,41 @@ const routes = [
         component: () => import("./pages/roles/AddEdit.vue")
       },
       {
+        path: "menu-roles",
+        name: "admin.menu_roles",
+        component: () => import("./pages/menu_roles/Index.vue")
+      },
+      {
+        path: "offices",
+        name: "admin.offices",
+        component: () => import("./pages/offices/Index.vue")
+      },
+      {
+        path: "offices/new",
+        name: "admin.offices.create",
+        component: () => import("./pages/offices/AddCreate.vue")
+      },
+      {
+        path: "offices/:id/edit",
+        name: "admin.offices.edit",
+        component: () => import("./pages/offices/AddCreate.vue")
+      },
+      {
+        path: "categories",
+        name: "admin.categories",
+        component: () => import("./pages/categories/Index.vue")
+      },
+      {
+        path: "categories/new",
+        name: "admin.categories.create",
+        component: () => import("./pages/categories/AddCreate.vue")
+      },
+      {
+        path: "categories/:id/edit",
+        name: "admin.categories.edit",
+        component: () => import("./pages/categories/AddCreate.vue")
+      },
+      {
         path: "posts",
         name: "admin.posts",
         component: () => import("./pages/posts/Index.vue")
@@ -112,7 +147,8 @@ const routes = [
 ];
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  // Keep router base at "/" even if Vite `base` is set for static assets (e.g. /static/dist/).
+  history: createWebHistory("/"),
   routes
 });
 

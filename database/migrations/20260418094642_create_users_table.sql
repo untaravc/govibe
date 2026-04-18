@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `phone_token` VARCHAR(255) NULL,
   `image` VARCHAR(512) NULL,
   `status` TINYINT UNSIGNED NOT NULL DEFAULT 1,
+  `role_id` BIGINT UNSIGNED NULL,
   `auth_type` ENUM('email','phone') NOT NULL DEFAULT 'email',
   `refresh_token` VARCHAR(255) NULL,
   `refresh_token_expired_at` DATETIME(3) NULL,
@@ -20,8 +21,12 @@ CREATE TABLE IF NOT EXISTS `users` (
   `deleted_at` DATETIME(3) NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `users_email_unique` (`email`),
+  KEY `users_role_id_index` (`role_id`),
   KEY `users_deleted_at_index` (`deleted_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE `users`
+  ADD CONSTRAINT `users_role_id_foreign` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`) ON DELETE SET NULL;
 
 -- +goose Down
 DROP TABLE IF EXISTS `users`;

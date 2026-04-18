@@ -18,7 +18,8 @@
 
       <p v-if="message" class="mt-4 text-sm" :class="messageToneClass">{{ message }}</p>
 
-      <div class="mt-6 overflow-auto rounded-xl border border-slate-200">
+      <div class="relative mt-6 overflow-auto rounded-xl border border-slate-200">
+        <PageLoader :fullscreen="false" />
         <table class="w-full min-w-[680px] text-left text-sm">
           <thead class="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
             <tr>

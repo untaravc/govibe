@@ -28,6 +28,10 @@ func main() {
 	app.Use(accessmiddleware.New())
 
 	app.Static("/static", "./public")
+	// Compatibility: some deployments end up requesting chunks from "/chunks/*".
+	// Serving them directly avoids 404s when the base path differs.
+	app.Static("/chunks", "./public/dist/chunks")
+	app.Static("/assets", "./public/dist/assets")
 
 	db, err := configs.OpenGormMySQL()
 	if err != nil {

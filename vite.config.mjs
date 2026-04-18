@@ -4,6 +4,7 @@ import vue from "@vitejs/plugin-vue";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig(({ mode }) => ({
+  base: "/static/dist/",
   plugins: [vue(), tailwindcss()],
   publicDir: false,
   build: {

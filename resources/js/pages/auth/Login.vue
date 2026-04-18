@@ -117,6 +117,6 @@ async function onSubmit() {
 
   message.value = "Signed in.";
   messageTone.value = "success";
-  router.push("/");
+  router.push("/admin");
 }
 </script>

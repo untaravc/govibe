@@ -17,6 +17,7 @@ type User struct {
 	PhoneToken      *string        `json:"-" gorm:"column:phone_token;type:varchar(255)"`
 	Image           *string        `json:"image,omitempty" gorm:"type:varchar(512)"`
 	Status          uint8          `json:"status" gorm:"type:tinyint unsigned;not null;default:1"`
+	RoleID          *uint          `json:"role_id,omitempty" gorm:"column:role_id;index"`
 	AuthType        string         `json:"auth_type" gorm:"type:enum('email','phone');not null;default:'email'"`
 	RefreshToken    *string        `json:"-" gorm:"column:refresh_token;type:varchar(255)"`
 	RefreshTokenExp *time.Time     `json:"refresh_token_expired_at,omitempty" gorm:"column:refresh_token_expired_at"`

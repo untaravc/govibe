@@ -89,6 +89,33 @@ func SeedMenus(db *gorm.DB) error {
 			Link:     strPtr("/admin/menu-roles"),
 			Status:   1,
 		},
+		{
+			Name:     "Offices",
+			Icon:     strPtr("mdi:office-building-outline"),
+			Slug:     "offices",
+			ParentID: &config.ID,
+			Order:    4,
+			Link:     strPtr("/admin/offices"),
+			Status:   1,
+		},
+		{
+			Name:     "Categories",
+			Icon:     strPtr("mdi:tag-outline"),
+			Slug:     "categories",
+			ParentID: &config.ID,
+			Order:    5,
+			Link:     strPtr("/admin/categories"),
+			Status:   1,
+		},
+		{
+			Name:     "Posts",
+			Icon:     strPtr("mdi:file-document-outline"),
+			Slug:     "posts",
+			ParentID: &config.ID,
+			Order:    6,
+			Link:     strPtr("/admin/posts"),
+			Status:   1,
+		},
 	}
 
 	for _, m := range children {
