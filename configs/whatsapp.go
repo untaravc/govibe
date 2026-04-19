@@ -16,19 +16,15 @@ type WhatsAppConfig struct {
 func LoadWhatsAppConfig() (WhatsAppConfig, error) {
 	_ = godotenv.Load()
 
-	url := strings.TrimSpace(os.Getenv("BLU_URL"))
+	url := strings.TrimSpace(os.Getenv("FONNTE_URL"))
 	if url == "" {
 		url = "https://api.blu.com/send"
 	}
 
-	// Matches the Laravel sample env name "blu_TOKEN", but normalized to uppercase.
-	token := strings.TrimSpace(os.Getenv("BLU_TOKEN"))
-	if token == "" {
-		token = strings.TrimSpace(os.Getenv("blu_TOKEN"))
-	}
+	token := strings.TrimSpace(os.Getenv("FONNTE_TOKEN"))
 
 	if token == "" {
-		return WhatsAppConfig{}, errors.New("BLU_TOKEN is required")
+		return WhatsAppConfig{}, errors.New("FONNTE_TOKEN is required")
 	}
 
 	return WhatsAppConfig{

@@ -169,8 +169,10 @@ async function logout() {
 
   auth.logout();
   try {
-    localStorage.removeItem("token");
-    sessionStorage.removeItem("token");
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    sessionStorage.removeItem("access_token");
+    sessionStorage.removeItem("refresh_token");
   } catch {
     // ignore
   }

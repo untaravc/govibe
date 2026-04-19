@@ -8,6 +8,7 @@ const STORAGE_KEY = "govibe.auth";
 export const useAuthStore = defineStore("auth", {
   state: () => ({
     token: "",
+    refreshToken: "",
     user: null,
     loading: false,
     error: "",
@@ -23,6 +24,7 @@ export const useAuthStore = defineStore("auth", {
         if (!raw) return;
         const parsed = JSON.parse(raw);
         this.token = typeof parsed?.token === "string" ? parsed.token : "";
+        this.refreshToken = typeof parsed?.refreshToken === "string" ? parsed.refreshToken : "";
         this.user = parsed?.user ?? null;
       } catch {
         // ignore invalid storage
@@ -34,6 +36,7 @@ export const useAuthStore = defineStore("auth", {
           STORAGE_KEY,
           JSON.stringify({
             token: this.token,
+            refreshToken: this.refreshToken,
             user: this.user
           })
         );
@@ -43,6 +46,7 @@ export const useAuthStore = defineStore("auth", {
     },
     clear() {
       this.token = "";
+      this.refreshToken = "";
       this.user = null;
       this.error = "";
       try {
@@ -66,11 +70,12 @@ export const useAuthStore = defineStore("auth", {
         }
 
         const result = json?.result ?? {};
-        this.token = typeof result?.token === "string" ? result.token : "";
+        this.token = typeof result?.access_token === "string" ? result.access_token : "";
+        this.refreshToken = typeof result?.refresh_token === "string" ? result.refresh_token : "";
         this.user = result?.user ?? null;
 
         if (!this.token) {
-          this.error = "Login failed: missing token";
+          this.error = "Login failed: missing access token";
           return false;
         }
 

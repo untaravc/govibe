@@ -62,14 +62,20 @@ func (ctl *AuthController) Login(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
+	appCfg := configs.LoadAppConfig()
+
 	now := time.Now()
-	expiresAt := now.Add(time.Duration(jwtCfg.TTLMin) * time.Minute)
+	expiresAt := now.Add(time.Duration(appCfg.AccessTokenPeriod) * time.Minute)
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub":   u.ID,
-		"email": u.Email,
-		"iat":   now.Unix(),
-		"exp":   expiresAt.Unix(),
+		"sub":     u.ID,
+		"email":   u.Email,
+		"id":      u.ID,
+		"name":    u.Name,
+		"image":   u.Image,
+		"role_id": u.RoleID,
+		"iat":     now.Unix(),
+		"exp":     expiresAt.Unix(),
 	})
 
 	signed, err := token.SignedString([]byte(jwtCfg.Secret))
@@ -77,12 +83,123 @@ func (ctl *AuthController) Login(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
+	refreshToken, err := randomHexString(120)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	refreshTokenExpiresAt := now.Add(time.Duration(appCfg.RefreshTokenPeriod) * time.Minute)
+
+	if err := ctl.db.
+		Model(&models.User{}).
+		Where("id = ?", u.ID).
+		Where("deleted_at IS NULL").
+		Updates(map[string]any{
+			"refresh_token":            refreshToken,
+			"refresh_token_expired_at": refreshTokenExpiresAt,
+			"refresh_token_updated_at": now,
+		}).Error; err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	u.RefreshToken = &refreshToken
+	u.RefreshTokenExp = &refreshTokenExpiresAt
+	u.RefreshTokenUpd = &now
+
 	return response.OK(c, "ok", fiber.Map{
-		"token":        signed,
-		"token_type":   "Bearer",
-		"expires_at":   expiresAt.UTC().Format(time.RFC3339),
-		"expires_unix": expiresAt.Unix(),
-		"user":         u,
+		"access_token":  signed,
+		"token_type":    "Bearer",
+		"expires_at":    expiresAt.UTC().Format(time.RFC3339),
+		"expires_unix":  expiresAt.Unix(),
+		"refresh_token": refreshToken,
+		"user":          u,
+	})
+}
+
+func (ctl *AuthController) RefreshToken(c *fiber.Ctx) error {
+	authHeader := strings.TrimSpace(c.Get("Authorization"))
+	if authHeader == "" {
+		return fiber.NewError(fiber.StatusUnauthorized, "missing bearer token")
+	}
+
+	parts := strings.Fields(authHeader)
+	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") || strings.TrimSpace(parts[1]) == "" {
+		return fiber.NewError(fiber.StatusUnauthorized, "invalid authorization header")
+	}
+	refreshToken := parts[1]
+
+	now := time.Now()
+
+	var u models.User
+	if err := ctl.db.
+		Where("refresh_token = ?", refreshToken).
+		Where("deleted_at IS NULL").
+		First(&u).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fiber.NewError(fiber.StatusUnauthorized, "invalid refresh token")
+		}
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	if u.RefreshTokenExp == nil || !u.RefreshTokenExp.After(now) {
+		return fiber.NewError(fiber.StatusUnauthorized, "refresh token expired")
+	}
+
+	jwtCfg, err := configs.LoadJWTConfig()
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	appCfg := configs.LoadAppConfig()
+
+	accessExpiresAt := now.Add(time.Duration(appCfg.AccessTokenPeriod) * time.Minute)
+	access := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub":     u.ID,
+		"email":   u.Email,
+		"id":      u.ID,
+		"name":    u.Name,
+		"image":   u.Image,
+		"role_id": u.RoleID,
+		"iat":     now.Unix(),
+		"exp":     accessExpiresAt.Unix(),
+	})
+	signedAccess, err := access.SignedString([]byte(jwtCfg.Secret))
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	newRefreshToken, err := randomHexString(120)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	newRefreshTokenExpiresAt := now.Add(time.Duration(appCfg.RefreshTokenPeriod) * time.Minute)
+
+	res := ctl.db.
+		Model(&models.User{}).
+		Where("id = ?", u.ID).
+		Where("refresh_token = ?", refreshToken).
+		Where("deleted_at IS NULL").
+		Updates(map[string]any{
+			"refresh_token":            newRefreshToken,
+			"refresh_token_expired_at": newRefreshTokenExpiresAt,
+			"refresh_token_updated_at": now,
+		})
+	if res.Error != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, res.Error.Error())
+	}
+	if res.RowsAffected == 0 {
+		return fiber.NewError(fiber.StatusUnauthorized, "invalid refresh token")
+	}
+
+	u.RefreshToken = &newRefreshToken
+	u.RefreshTokenExp = &newRefreshTokenExpiresAt
+	u.RefreshTokenUpd = &now
+
+	return response.OK(c, "ok", fiber.Map{
+		"access_token":  signedAccess,
+		"token_type":    "Bearer",
+		"expires_at":    accessExpiresAt.UTC().Format(time.RFC3339),
+		"expires_unix":  accessExpiresAt.Unix(),
+		"refresh_token": newRefreshToken,
+		"user":          u,
 	})
 }
 

@@ -10,6 +10,7 @@ import (
 	postcontroller "govibe/app/Http/Controllers/PostController"
 	rolecontroller "govibe/app/Http/Controllers/RoleController"
 	usercontroller "govibe/app/Http/Controllers/UserController"
+	authmiddleware "govibe/app/Http/Middleware/AuthMiddleware"
 	"govibe/app/Http/Response"
 
 	"github.com/gofiber/fiber/v2"
@@ -18,26 +19,29 @@ import (
 
 func RegisterAPI(app *fiber.App, db *gorm.DB) {
 	api := app.Group("/api")
-	api.Get("/health", func(c *fiber.Ctx) error {
-		return response.OK(c, "ok", fiber.Map{"status": "ok"})
-	})
+	api.Get("/health", func(c *fiber.Ctx) error { return response.OK(c, "ok", fiber.Map{"status": "ok"}) })
 
 	authController := authcontroller.New(db)
+	// Public auth endpoints (no bearer token required).
 	api.Post("/register", authController.Register)
 	api.Post("/login", authController.Login)
-	api.Post("/logout", authController.Logout)
+	api.Post("/refresh-token", authController.RefreshToken)
 	api.Post("/request-reset-password", authController.RequestResetPassword)
-	api.Get("/profile", authController.Profile)
+
+	// Protected API endpoints (bearer token required).
+	protected := api.Group("", authmiddleware.New(db))
+	protected.Post("/logout", authController.Logout)
+	protected.Get("/profile", authController.Profile)
 
 	menuController := menucontroller.New(db)
-	api.Get("/menu", menuController.Index)
-	api.Get("/menus", menuController.List)
+	protected.Get("/menu", menuController.Index)
+	protected.Get("/menus", menuController.List)
 
 	mediaController := mediacontroller.New()
-	api.Post("/upload", mediaController.Upload)
+	protected.Post("/upload", mediaController.Upload)
 
 	userController := usercontroller.New(db)
-	users := api.Group("/users")
+	users := protected.Group("/users")
 	users.Get("/", userController.Index)
 	users.Get("/:id", userController.Show)
 	users.Post("/", userController.Store)
@@ -45,7 +49,7 @@ func RegisterAPI(app *fiber.App, db *gorm.DB) {
 	users.Delete("/:id", userController.Destroy)
 
 	roleController := rolecontroller.New(db)
-	roles := api.Group("/roles")
+	roles := protected.Group("/roles")
 	roles.Get("/", roleController.Index)
 	roles.Get("/:id", roleController.Show)
 	roles.Post("/", roleController.Store)
@@ -53,7 +57,7 @@ func RegisterAPI(app *fiber.App, db *gorm.DB) {
 	roles.Delete("/:id", roleController.Destroy)
 
 	postController := postcontroller.New(db)
-	posts := api.Group("/posts")
+	posts := protected.Group("/posts")
 	posts.Get("/", postController.Index)
 	posts.Get("/:id", postController.Show)
 	posts.Post("/", postController.Store)
@@ -61,7 +65,7 @@ func RegisterAPI(app *fiber.App, db *gorm.DB) {
 	posts.Delete("/:id", postController.Destroy)
 
 	categoryController := categorycontroller.New(db)
-	categories := api.Group("/categories")
+	categories := protected.Group("/categories")
 	categories.Get("/", categoryController.Index)
 	categories.Get("/:id", categoryController.Show)
 	categories.Post("/", categoryController.Store)
@@ -69,7 +73,7 @@ func RegisterAPI(app *fiber.App, db *gorm.DB) {
 	categories.Delete("/:id", categoryController.Destroy)
 
 	officeController := officecontroller.New(db)
-	offices := api.Group("/offices")
+	offices := protected.Group("/offices")
 	offices.Get("/", officeController.Index)
 	offices.Get("/:id", officeController.Show)
 	offices.Post("/", officeController.Store)
@@ -77,7 +81,7 @@ func RegisterAPI(app *fiber.App, db *gorm.DB) {
 	offices.Delete("/:id", officeController.Destroy)
 
 	menuRoleController := menurolecontroller.New(db)
-	api.Get("/menu-roles", menuRoleController.Index)
-	api.Post("/menu-roles", menuRoleController.Save)
-	api.Put("/menu-roles", menuRoleController.Save)
+	protected.Get("/menu-roles", menuRoleController.Index)
+	protected.Post("/menu-roles", menuRoleController.Save)
+	protected.Put("/menu-roles", menuRoleController.Save)
 }

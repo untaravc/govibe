@@ -16,6 +16,7 @@
           Home
         </RouterLink>
         <RouterLink
+          v-if="!hasToken"
           to="/auth/register"
           class="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
           active-class="bg-slate-100 text-slate-900"
@@ -23,6 +24,7 @@
           Register
         </RouterLink>
         <RouterLink
+          v-if="!hasToken"
           to="/auth/login"
           class="rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
         >
@@ -50,14 +52,14 @@ const hasToken = computed(() => token.value.trim().length > 0);
 
 function syncTokenFromStorage() {
   try {
-    token.value = localStorage.getItem("token") || "";
+    token.value = localStorage.getItem("access_token") || "";
   } catch {
     token.value = "";
   }
 }
 
 function onStorage(event) {
-  if (event.key === "token") syncTokenFromStorage();
+  if (event.key === "access_token") syncTokenFromStorage();
 }
 
 onMounted(() => {

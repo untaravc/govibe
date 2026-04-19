@@ -36,14 +36,6 @@
         </div>
 
         <div class="flex items-center justify-between">
-          <label class="inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-            <input
-              v-model="remember"
-              type="checkbox"
-              class="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 dark:border-white/10 dark:bg-slate-950"
-            />
-            Remember me
-          </label>
           <RouterLink to="/auth/forgot-password" class="text-sm font-medium text-slate-900 hover:underline dark:text-slate-50">
             Forgot password?
           </RouterLink>
@@ -80,7 +72,6 @@ const auth = useAuthStore();
 
 const email = ref("");
 const password = ref("");
-const remember = ref(true);
 
 const message = ref("");
 const messageTone = ref("neutral"); // neutral | success | error
@@ -105,12 +96,8 @@ async function onSubmit() {
   }
 
   try {
-    // Per request: store token in localStorage as `token`.
-    localStorage.setItem("token", auth.token);
-    if (!remember.value) {
-      // Optionally also keep a session copy when "Remember me" is off.
-      sessionStorage.setItem("token", auth.token);
-    }
+    localStorage.setItem("access_token", auth.token);
+    localStorage.setItem("refresh_token", auth.refreshToken || "");
   } catch {
     // ignore storage failures
   }

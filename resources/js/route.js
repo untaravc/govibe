@@ -154,7 +154,7 @@ const router = createRouter({
 
 function getToken() {
   try {
-    return localStorage.getItem("token") || "";
+    return localStorage.getItem("access_token") || "";
   } catch {
     return "";
   }

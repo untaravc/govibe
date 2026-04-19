@@ -1,9 +1,22 @@
 import router from "./route.js";
 import { useUiStore } from "./store/ui.js";
+import { withApiBaseUrl } from "./config/baseUrl.js";
 
 function getStoredToken() {
   try {
-    return (localStorage.getItem("token") || sessionStorage.getItem("token") || "").trim();
+    return (
+      (localStorage.getItem("access_token") ||
+        sessionStorage.getItem("access_token") ||
+        "").trim()
+    );
+  } catch {
+    return "";
+  }
+}
+
+function getStoredRefreshToken() {
+  try {
+    return String(localStorage.getItem("refresh_token") || "").trim();
   } catch {
     return "";
   }
@@ -34,6 +47,47 @@ function maybeNavigateForStatus(status) {
   router.push(target).catch(() => {});
 }
 
+let refreshPromise = null;
+
+async function refreshTokens() {
+  if (refreshPromise) return refreshPromise;
+
+  const refreshToken = getStoredRefreshToken();
+  if (!refreshToken) return null;
+
+  refreshPromise = (async () => {
+    const res = await fetch(withApiBaseUrl("/api/refresh-token"), {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${refreshToken}`
+      }
+    });
+
+    const json = await res.json().catch(() => null);
+    const result = json?.result || {};
+
+    const accessToken = typeof result?.access_token === "string" ? result.access_token : "";
+    const newRefreshToken = typeof result?.refresh_token === "string" ? result.refresh_token : "";
+
+    if (!res.ok || !json?.success || !accessToken || !newRefreshToken) return null;
+
+    try {
+      localStorage.setItem("access_token", accessToken);
+      localStorage.setItem("refresh_token", newRefreshToken);
+    } catch {
+      // ignore storage failures
+    }
+
+    return { accessToken, refreshToken: newRefreshToken };
+  })();
+
+  try {
+    return await refreshPromise;
+  } finally {
+    refreshPromise = null;
+  }
+}
+
 async function request(url, options = {}) {
   const {
     method = "GET",
@@ -41,6 +95,7 @@ async function request(url, options = {}) {
     headers = {},
     body = undefined
   } = options;
+  const retried = Boolean(options?._retried);
 
   const finalHeaders = { ...headers };
 
@@ -61,7 +116,7 @@ async function request(url, options = {}) {
 
   if (track) ui.apiStart();
   try {
-    const res = await fetch(url, {
+    const res = await fetch(typeof url === "string" ? withApiBaseUrl(url) : url, {
       method,
       headers: finalHeaders,
       body: method === "GET" || method === "HEAD" ? undefined : finalBody
@@ -70,6 +125,26 @@ async function request(url, options = {}) {
     const json = await res.json().catch(() => null);
 
     if (!res.ok) {
+      if (
+        res.status === 401 &&
+        !retried &&
+        auth &&
+        typeof url === "string" &&
+        url !== "/api/login" &&
+        url !== "/api/refresh-token"
+      ) {
+        const refreshed = await refreshTokens();
+        if (refreshed) {
+          return request(url, { ...options, _retried: true });
+        }
+        try {
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
+        } catch {
+          // ignore
+        }
+      }
+
       maybeNavigateForStatus(res.status);
     }
 
@@ -104,4 +179,3 @@ export const api = {
 };
 
 export default api;
-
