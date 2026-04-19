@@ -5,21 +5,64 @@
       <p class="mt-1 text-sm text-slate-600">Request a reset token using email or phone.</p>
 
       <div class="mt-6">
-        <div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-1">
+        <div
+          role="tablist"
+          aria-label="Reset method"
+          class="relative flex items-center rounded-2xl border border-slate-200 bg-slate-50 p-1"
+        >
+          <div
+            aria-hidden="true"
+            class="absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-xl bg-white shadow-sm ring-1 ring-slate-900/5 transition-transform duration-200"
+            :class="tab === 'phone' ? 'translate-x-full' : ''"
+          ></div>
+
           <button
+            role="tab"
             type="button"
-            class="flex-1 rounded-lg px-3 py-2 text-sm font-medium"
-            :class="tab === 'email' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+            class="relative z-10 flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors"
+            :aria-selected="tab === 'email' ? 'true' : 'false'"
+            :class="tab === 'email' ? 'bg-white text-slate-900' : 'text-slate-600 hover:text-slate-900'"
             @click="setTab('email')"
           >
+            <svg viewBox="0 0 24 24" fill="none" class="h-4 w-4" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-9Z"
+                stroke="currentColor"
+                stroke-width="2"
+              />
+              <path
+                d="m5.5 7.5 6.1 4.2a1 1 0 0 0 1.2 0l6.1-4.2"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
             Email
           </button>
+
           <button
+            role="tab"
             type="button"
-            class="flex-1 rounded-lg px-3 py-2 text-sm font-medium"
-            :class="tab === 'phone' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+            class="relative z-10 flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors"
+            :aria-selected="tab === 'phone' ? 'true' : 'false'"
+            :class="tab === 'phone' ? 'bg-white text-slate-900' : 'text-slate-600 hover:text-slate-900'"
             @click="setTab('phone')"
           >
+            <svg viewBox="0 0 24 24" fill="none" class="h-4 w-4" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M8 3h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M10 18h4"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
             Phone
           </button>
         </div>
@@ -133,4 +176,3 @@ async function onSubmit() {
   }
 }
 </script>
-

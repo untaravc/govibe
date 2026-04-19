@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -303,6 +305,144 @@ func (ctl *AuthController) Profile(c *fiber.Ctx) error {
 	})
 }
 
+func (ctl *AuthController) UpdateProfile(c *fiber.Ctx) error {
+	var raw updateProfileRequest
+	if err := c.BodyParser(&raw); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid json body")
+	}
+
+	userIDAny := c.Locals("auth_user_id")
+	userID, ok := parseJWTSubToUint(userIDAny)
+	if !ok || userID == 0 {
+		return fiber.NewError(fiber.StatusUnauthorized, "unauthenticated")
+	}
+
+	var req updateProfileRequest
+	updates := map[string]any{}
+
+	if raw.Name != nil {
+		v := strings.TrimSpace(*raw.Name)
+		req.Name = &v
+		updates["name"] = v
+	}
+
+	if raw.Email != nil {
+		v := strings.TrimSpace(*raw.Email)
+		req.Email = &v
+		updates["email"] = v
+	}
+
+	if raw.Phone != nil {
+		v := strings.TrimSpace(*raw.Phone)
+		if v == "" {
+			req.Phone = nil
+			updates["phone"] = nil
+		} else {
+			req.Phone = &v
+			updates["phone"] = v
+		}
+	}
+
+	if raw.Password != nil {
+		v := strings.TrimSpace(*raw.Password)
+		if v != "" {
+			req.Password = &v
+		}
+	}
+
+	if errs := appvalidator.Validate(req); len(errs) > 0 {
+		return response.Error(c, fiber.StatusUnprocessableEntity, "validation error", fiber.Map{
+			"errors": errs,
+		})
+	}
+
+	if raw.Name == nil && raw.Email == nil && raw.Phone == nil && (raw.Password == nil || strings.TrimSpace(*raw.Password) == "") {
+		return response.Error(c, fiber.StatusUnprocessableEntity, "validation error", fiber.Map{
+			"errors": fiber.Map{
+				"fields": "no fields to update",
+			},
+		})
+	}
+
+	if req.Name != nil && strings.TrimSpace(*req.Name) == "" {
+		return response.Error(c, fiber.StatusUnprocessableEntity, "validation error", fiber.Map{
+			"errors": fiber.Map{
+				"name": "cannot be empty",
+			},
+		})
+	}
+	if req.Email != nil && strings.TrimSpace(*req.Email) == "" {
+		return response.Error(c, fiber.StatusUnprocessableEntity, "validation error", fiber.Map{
+			"errors": fiber.Map{
+				"email": "cannot be empty",
+			},
+		})
+	}
+
+	if req.Email != nil {
+		var existing models.User
+		if err := ctl.db.
+			Select("id").
+			Where("email = ?", *req.Email).
+			Where("id <> ?", userID).
+			First(&existing).Error; err == nil {
+			return fiber.NewError(fiber.StatusConflict, "email already registered")
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		}
+	}
+
+	if req.Password != nil {
+		hash, err := bcrypt.GenerateFromPassword([]byte(*req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		}
+		updates["password"] = string(hash)
+	}
+
+	if len(updates) == 0 {
+		return response.Error(c, fiber.StatusUnprocessableEntity, "validation error", fiber.Map{
+			"errors": fiber.Map{
+				"fields": "no fields to update",
+			},
+		})
+	}
+
+	res := ctl.db.
+		Model(&models.User{}).
+		Where("id = ?", userID).
+		Where("deleted_at IS NULL").
+		Updates(updates)
+	if res.Error != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, res.Error.Error())
+	}
+	if res.RowsAffected == 0 {
+		return fiber.NewError(fiber.StatusNotFound, "user not found")
+	}
+
+	var u models.User
+	if err := ctl.db.
+		Select("id", "name", "email", "phone", "image").
+		Where("id = ?", userID).
+		Where("deleted_at IS NULL").
+		First(&u).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fiber.NewError(fiber.StatusNotFound, "user not found")
+		}
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	return response.OK(c, "profile updated", fiber.Map{
+		"user": fiber.Map{
+			"id":    u.ID,
+			"name":  u.Name,
+			"email": u.Email,
+			"phone": u.Phone,
+			"image": u.Image,
+		},
+	})
+}
+
 func (ctl *AuthController) Logout(c *fiber.Ctx) error {
 	authHeader := strings.TrimSpace(c.Get("Authorization"))
 	if authHeader == "" {
@@ -451,8 +591,14 @@ func (ctl *AuthController) RequestResetPassword(c *fiber.Ctx) error {
 			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 		}
 
+		appURL := strings.TrimRight(strings.TrimSpace(os.Getenv("APP_URL")), "/")
+		link := fmt.Sprintf("%s/auth/validate-email-token?token=%s", appURL, url.QueryEscape(token))
+		if appURL == "" {
+			link = fmt.Sprintf("/auth/validate-email-token?token=%s", url.QueryEscape(token))
+		}
+
 		title := "GoVibe password reset"
-		body := fmt.Sprintf("Your reset token:\n\n%s\n", token)
+		body := fmt.Sprintf("Reset your password using this link:\n\n%s\n", link)
 		if err := service.SendEmail(req.Email, title, body); err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 		}
@@ -482,6 +628,92 @@ func (ctl *AuthController) RequestResetPassword(c *fiber.Ctx) error {
 	}
 
 	return response.OK(c, "reset token sent", fiber.Map{})
+}
+
+func (ctl *AuthController) ValidateEmailToken(c *fiber.Ctx) error {
+	token := strings.TrimSpace(c.Query("token"))
+	if token == "" {
+		return response.Error(c, fiber.StatusUnprocessableEntity, "validation error", fiber.Map{
+			"errors": fiber.Map{
+				"token": "is required",
+			},
+		})
+	}
+
+	var u models.User
+	if err := ctl.db.
+		Select("id").
+		Where("email_token = ?", token).
+		Where("deleted_at IS NULL").
+		First(&u).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return response.Error(c, fiber.StatusNotFound, "token not found", fiber.Map{
+				"valid": false,
+			})
+		}
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	return response.OK(c, "ok", fiber.Map{
+		"valid": true,
+	})
+}
+
+func (ctl *AuthController) UpdatePasswordWithToken(c *fiber.Ctx) error {
+	var req updatePasswordWithTokenRequest
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid json body")
+	}
+
+	req.EmailToken = strings.TrimSpace(req.EmailToken)
+	req.NewPassword = strings.TrimSpace(req.NewPassword)
+
+	if errs := appvalidator.Validate(req); len(errs) > 0 {
+		return response.Error(c, fiber.StatusUnprocessableEntity, "validation error", fiber.Map{
+			"errors": errs,
+		})
+	}
+
+	var u models.User
+	if err := ctl.db.
+		Select("id").
+		Where("email_token = ?", req.EmailToken).
+		Where("deleted_at IS NULL").
+		First(&u).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return response.Error(c, fiber.StatusNotFound, "token not found", fiber.Map{
+				"updated": false,
+			})
+		}
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	res := ctl.db.
+		Model(&models.User{}).
+		Where("id = ?", u.ID).
+		Where("email_token = ?", req.EmailToken).
+		Where("deleted_at IS NULL").
+		Updates(map[string]any{
+			"password":    string(hash),
+			"email_token": nil,
+		})
+	if res.Error != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, res.Error.Error())
+	}
+	if res.RowsAffected == 0 {
+		return response.Error(c, fiber.StatusNotFound, "token not found", fiber.Map{
+			"updated": false,
+		})
+	}
+
+	return response.OK(c, "password updated", fiber.Map{
+		"updated": true,
+	})
 }
 
 func randomHexString(length int) (string, error) {

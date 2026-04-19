@@ -26,6 +26,11 @@ const routes = [
         component: () => import("./pages/auth/ForgotPassword.vue")
       },
       {
+        path: "auth/validate-email-token",
+        name: "validate_email_token",
+        component: () => import("./pages/auth/ValidateEmailToken.vue")
+      },
+      {
         path: "auth/unauthenticated",
         name: "unauthenticated",
         component: () => import("./pages/auth/Unauthenticated.vue")
@@ -141,6 +146,11 @@ const routes = [
         path: "settings",
         name: "admin.settings",
         component: () => import("./pages/admin/Settings.vue")
+      },
+      {
+        path: "profile",
+        name: "admin.profile",
+        component: () => import("./pages/auth/Profile.vue")
       }
     ]
   }

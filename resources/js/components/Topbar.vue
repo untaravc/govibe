@@ -114,11 +114,7 @@ const menuRoot = ref(null);
 const displayName = computed(() => String(auth.user?.name || "Account"));
 const displayEmail = computed(() => String(auth.user?.email || ""));
 const avatarUrl = computed(() => String(auth.user?.image || "").trim());
-const profilePath = computed(() => {
-  const id = auth.user?.id;
-  if (id) return `/admin/users/${id}/edit`;
-  return "/admin/settings";
-});
+const profilePath = computed(() => "/admin/profile");
 const initials = computed(() => {
   const name = displayName.value.trim();
   if (!name) return "U";

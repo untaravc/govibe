@@ -27,11 +27,14 @@ func RegisterAPI(app *fiber.App, db *gorm.DB) {
 	api.Post("/login", authController.Login)
 	api.Post("/refresh-token", authController.RefreshToken)
 	api.Post("/request-reset-password", authController.RequestResetPassword)
+	api.Get("/validate-email-token", authController.ValidateEmailToken)
+	api.Post("/update-password-with-token", authController.UpdatePasswordWithToken)
 
 	// Protected API endpoints (bearer token required).
 	protected := api.Group("", authmiddleware.New(db))
 	protected.Post("/logout", authController.Logout)
 	protected.Get("/profile", authController.Profile)
+	protected.Patch("/profile", authController.UpdateProfile)
 
 	menuController := menucontroller.New(db)
 	protected.Get("/menu", menuController.Index)

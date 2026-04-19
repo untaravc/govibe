@@ -96,6 +96,7 @@ async function request(url, options = {}) {
     body = undefined
   } = options;
   const retried = Boolean(options?._retried);
+  const navigate = options?.navigate !== false;
 
   const finalHeaders = { ...headers };
 
@@ -145,7 +146,7 @@ async function request(url, options = {}) {
         }
       }
 
-      maybeNavigateForStatus(res.status);
+      if (navigate) maybeNavigateForStatus(res.status);
     }
 
     return { res, json };
