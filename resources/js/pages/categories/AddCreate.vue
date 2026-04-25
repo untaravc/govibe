@@ -23,13 +23,19 @@
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label class="text-sm font-medium text-slate-700">Section</label>
-            <input
-              v-model.trim="section"
-              type="text"
-              placeholder="blog"
+            <select
+              v-model="section"
               class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-900 shadow-sm outline-none ring-slate-900/10 placeholder:text-slate-400 focus:border-slate-300 focus:ring-4"
+              :disabled="sectionsLoading"
               required
-            />
+            >
+              <option value="" disabled>Select section</option>
+              <option v-for="item in sections" :key="item" :value="item">
+                {{ item }}
+              </option>
+            </select>
+            <p v-if="sectionsLoading" class="mt-2 text-sm text-slate-500">Loading sections...</p>
+            <p v-if="sectionsError" class="mt-2 text-sm text-danger">{{ sectionsError }}</p>
             <p v-if="fieldErrors.section" class="mt-2 text-sm text-danger">{{ fieldErrors.section }}</p>
           </div>
 
@@ -100,10 +106,13 @@ const route = useRoute();
 const id = computed(() => String(route.params.id || "").trim());
 const isEdit = computed(() => id.value.length > 0);
 
-const section = ref("blog");
+const section = ref("");
 const name = ref("");
 const slug = ref("");
 const status = ref(1);
+const sections = ref([]);
+const sectionsLoading = ref(false);
+const sectionsError = ref("");
 
 const loading = ref(false);
 const message = ref("");
@@ -115,6 +124,30 @@ const messageToneClass = computed(() => {
   if (messageTone.value === "error") return "text-danger";
   return "text-slate-700";
 });
+
+async function loadSections() {
+  sectionsLoading.value = true;
+  sectionsError.value = "";
+
+  try {
+    const { res, json } = await api.get("/api/sections", { auth: true });
+    if (!res.ok || json?.success === false) {
+      sections.value = [];
+      sectionsError.value = apiErrorMessage(json, `Failed to load sections (${res.status})`);
+      return;
+    }
+
+    sections.value = Array.isArray(json?.result?.sections) ? json.result.sections : [];
+    if (!section.value && sections.value.length > 0) {
+      section.value = sections.value[0];
+    }
+  } catch (err) {
+    sections.value = [];
+    sectionsError.value = String(err);
+  } finally {
+    sectionsLoading.value = false;
+  }
+}
 
 async function loadCategory() {
   if (!isEdit.value) return;
@@ -133,7 +166,7 @@ async function loadCategory() {
     }
 
     const c = json?.result?.category;
-    section.value = typeof c?.section === "string" ? c.section : "blog";
+    section.value = typeof c?.section === "string" ? c.section : "";
     name.value = typeof c?.name === "string" ? c.name : "";
     slug.value = typeof c?.slug === "string" ? c.slug : "";
     status.value = typeof c?.status === "number" ? c.status : 1;
@@ -189,7 +222,7 @@ async function onSubmit() {
 }
 
 onMounted(() => {
+  loadSections();
   loadCategory();
 });
 </script>
-

@@ -143,6 +143,21 @@ const routes = [
         component: () => import("./pages/posts/AddCreate.vue")
       },
       {
+        path: "shipments",
+        name: "admin.shipments",
+        component: () => import("./pages/shipments/Index.vue")
+      },
+      {
+        path: "shipments/new",
+        name: "admin.shipments.create",
+        component: () => import("./pages/shipments/AddEdit.vue")
+      },
+      {
+        path: "shipments/:id/edit",
+        name: "admin.shipments.edit",
+        component: () => import("./pages/shipments/AddEdit.vue")
+      },
+      {
         path: "settings",
         name: "admin.settings",
         component: () => import("./pages/admin/Settings.vue")

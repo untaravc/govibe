@@ -13,6 +13,9 @@ This project uses simple Go seed commands (no Goose integration).
 
 - Seed everything: `go run ./cmd/seed all`
 - Seed menus only: `go run ./cmd/seed menu`
+- Import Indonesian regions from JSON: `go run ./cmd/seed regions`
+
+Region import reads `resources/assets` by default. Override it with `REGION_ASSETS_DIR=/path/to/assets` when needed.
 
 ## Menus
 
@@ -23,4 +26,3 @@ The menu seeder inserts (or updates by `slug`) the following structure:
   - User
   - Role
   - Menu Role
-

@@ -2,6 +2,7 @@ package categorycontroller
 
 import (
 	"errors"
+	"strconv"
 	"strings"
 
 	"govibe/app/Http/Response"
@@ -23,7 +24,29 @@ func New(db *gorm.DB) *CategoryController {
 
 func (ctl *CategoryController) Index(c *fiber.Ctx) error {
 	var categories []models.Category
-	if err := ctl.db.Order("id desc").Find(&categories).Error; err != nil {
+
+	q := ctl.db.Model(&models.Category{})
+
+	section := strings.TrimSpace(c.Query("section"))
+	if section != "" {
+		q = q.Where("section = ?", section)
+	}
+
+	name := strings.TrimSpace(c.Query("name"))
+	if name != "" {
+		q = q.Where("name LIKE ?", "%"+name+"%")
+	}
+
+	statusRaw := strings.TrimSpace(c.Query("status"))
+	if statusRaw != "" {
+		n, err := strconv.Atoi(statusRaw)
+		if err != nil || (n != 0 && n != 1) {
+			return fiber.NewError(fiber.StatusUnprocessableEntity, "invalid status")
+		}
+		q = q.Where("status = ?", uint8(n))
+	}
+
+	if err := q.Order("id desc").Find(&categories).Error; err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 

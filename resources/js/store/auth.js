@@ -63,7 +63,7 @@ export const useAuthStore = defineStore("auth", {
       try {
         const { res, json } = await api.post("/api/login", { email, password }, { auth: false });
 
-        if (!res.ok) {
+        if (!res.ok || json?.success === false) {
           this.fieldErrors = apiFieldErrors(json);
           this.error = apiErrorMessage(json, `Login failed (${res.status})`);
           return false;

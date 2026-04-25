@@ -33,6 +33,9 @@
           <p v-if="fieldErrors.password" class="mt-2 text-sm text-rose-600 dark:text-rose-400">
             {{ fieldErrors.password }}
           </p>
+          <p v-if="message && messageTone === 'error'" class="mt-2 text-sm" :class="messageToneClass">
+            {{ message }}
+          </p>
         </div>
 
         <div class="flex items-center justify-between">

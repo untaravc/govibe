@@ -18,6 +18,45 @@
 
       <p v-if="message" class="mt-4 text-sm" :class="messageToneClass">{{ message }}</p>
 
+      <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div>
+          <label class="text-sm font-medium text-slate-700">Section</label>
+          <select
+            v-model="filterSection"
+            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-900 shadow-sm outline-none ring-slate-900/10 focus:border-slate-300 focus:ring-4"
+            :disabled="sectionsLoading"
+          >
+            <option value="">All</option>
+            <option v-for="item in sections" :key="item" :value="item">
+              {{ item }}
+            </option>
+          </select>
+          <p v-if="sectionsError" class="mt-2 text-sm text-danger">{{ sectionsError }}</p>
+        </div>
+
+        <div>
+          <label class="text-sm font-medium text-slate-700">Name</label>
+          <input
+            v-model.trim="filterName"
+            type="text"
+            placeholder="Search name"
+            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-900 shadow-sm outline-none ring-slate-900/10 placeholder:text-slate-400 focus:border-slate-300 focus:ring-4"
+          />
+        </div>
+
+        <div>
+          <label class="text-sm font-medium text-slate-700">Status</label>
+          <select
+            v-model="filterStatus"
+            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-900 shadow-sm outline-none ring-slate-900/10 focus:border-slate-300 focus:ring-4"
+          >
+            <option value="">All</option>
+            <option value="1">Active</option>
+            <option value="0">Inactive</option>
+          </select>
+        </div>
+      </div>
+
       <div class="relative mt-6 overflow-auto rounded-xl border border-slate-200">
         <PageLoader :fullscreen="false" />
         <table class="w-full min-w-[860px] text-left text-sm">
@@ -76,7 +115,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 
 import api from "../../api.js";
@@ -87,6 +126,12 @@ const router = useRouter();
 const categories = ref([]);
 const message = ref("");
 const messageTone = ref("neutral"); // neutral | success | error
+const sections = ref([]);
+const sectionsLoading = ref(false);
+const sectionsError = ref("");
+const filterSection = ref("");
+const filterName = ref("");
+const filterStatus = ref("");
 
 const messageToneClass = computed(() => {
   if (messageTone.value === "success") return "text-success";
@@ -105,7 +150,13 @@ async function loadCategories() {
   message.value = "";
   messageTone.value = "neutral";
   try {
-    const { res, json } = await api.get("/api/categories", { auth: true });
+    const params = new URLSearchParams();
+    if (filterSection.value) params.set("section", filterSection.value);
+    if (filterName.value) params.set("name", filterName.value);
+    if (filterStatus.value !== "") params.set("status", filterStatus.value);
+
+    const url = params.toString() ? `/api/categories?${params.toString()}` : "/api/categories";
+    const { res, json } = await api.get(url, { auth: true });
     if (!res.ok) {
       message.value = apiErrorMessage(json, `Request failed (${res.status})`);
       messageTone.value = "error";
@@ -119,6 +170,34 @@ async function loadCategories() {
     categories.value = [];
   }
 }
+
+async function loadSections() {
+  sectionsLoading.value = true;
+  sectionsError.value = "";
+  try {
+    const { res, json } = await api.get("/api/sections", { auth: true });
+    if (!res.ok || json?.success === false) {
+      sections.value = [];
+      sectionsError.value = apiErrorMessage(json, `Failed to load sections (${res.status})`);
+      return;
+    }
+    sections.value = Array.isArray(json?.result?.sections) ? json.result.sections : [];
+  } catch (err) {
+    sections.value = [];
+    sectionsError.value = String(err);
+  } finally {
+    sectionsLoading.value = false;
+  }
+}
+
+let filterTimer = null;
+watch([filterSection, filterName, filterStatus], () => {
+  if (filterTimer) clearTimeout(filterTimer);
+  filterTimer = setTimeout(() => {
+    loadCategories();
+    filterTimer = null;
+  }, 250);
+});
 
 async function onDelete(c) {
   const ok = confirm(`Delete category "${c.name}"?`);
@@ -143,7 +222,7 @@ async function onDelete(c) {
 }
 
 onMounted(() => {
+  loadSections();
   loadCategories();
 });
 </script>
-

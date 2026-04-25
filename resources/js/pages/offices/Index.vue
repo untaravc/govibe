@@ -27,9 +27,7 @@
               <th class="px-4 py-3">Type</th>
               <th class="px-4 py-3">Code</th>
               <th class="px-4 py-3">Name</th>
-              <th class="px-4 py-3">Phone</th>
               <th class="px-4 py-3">Status</th>
-              <th class="px-4 py-3">Created</th>
               <th class="px-4 py-3 text-right">Action</th>
             </tr>
           </thead>
@@ -39,7 +37,6 @@
               <td class="px-4 py-3 text-slate-700">{{ o.type }}</td>
               <td class="px-4 py-3 font-medium text-slate-900">{{ o.code }}</td>
               <td class="px-4 py-3 text-slate-700">{{ o.name }}</td>
-              <td class="px-4 py-3 text-slate-700">{{ o.phone || "—" }}</td>
               <td class="px-4 py-3">
                 <span
                   class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium"
@@ -48,7 +45,6 @@
                   {{ o.status ? "Active" : "Inactive" }}
                 </span>
               </td>
-              <td class="px-4 py-3 text-slate-700">{{ formatDate(o.created_at) }}</td>
               <td class="px-4 py-3 text-right">
                 <button
                   type="button"
@@ -68,7 +64,7 @@
             </tr>
 
             <tr v-if="offices.length === 0 && !message">
-              <td class="px-4 py-8 text-center text-slate-500" colspan="8">No offices found.</td>
+              <td class="px-4 py-8 text-center text-slate-500" colspan="6">No offices found.</td>
             </tr>
           </tbody>
         </table>
@@ -95,13 +91,6 @@ const messageToneClass = computed(() => {
   if (messageTone.value === "error") return "text-danger";
   return "text-slate-700";
 });
-
-function formatDate(value) {
-  if (!value) return "—";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return String(value);
-  return d.toLocaleString();
-}
 
 async function loadOffices() {
   message.value = "";
@@ -148,4 +137,3 @@ onMounted(() => {
   loadOffices();
 });
 </script>
-

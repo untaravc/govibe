@@ -8,7 +8,10 @@ import (
 	menurolecontroller "govibe/app/Http/Controllers/MenuRoleController"
 	officecontroller "govibe/app/Http/Controllers/OfficeController"
 	postcontroller "govibe/app/Http/Controllers/PostController"
+	regioncontroller "govibe/app/Http/Controllers/RegionController"
 	rolecontroller "govibe/app/Http/Controllers/RoleController"
+	sectioncontroller "govibe/app/Http/Controllers/SectionController"
+	shipmentcontroller "govibe/app/Http/Controllers/ShipmentController"
 	usercontroller "govibe/app/Http/Controllers/UserController"
 	authmiddleware "govibe/app/Http/Middleware/AuthMiddleware"
 	"govibe/app/Http/Response"
@@ -43,6 +46,15 @@ func RegisterAPI(app *fiber.App, db *gorm.DB) {
 	mediaController := mediacontroller.New()
 	protected.Post("/upload", mediaController.Upload)
 
+	sectionController := sectioncontroller.New()
+	protected.Get("/sections", sectionController.Index)
+
+	regionController := regioncontroller.New(db)
+	protected.Get("/provinces", regionController.Provinces)
+	protected.Get("/cities", regionController.Cities)
+	protected.Get("/districts", regionController.Districts)
+	protected.Get("/villages", regionController.Villages)
+
 	userController := usercontroller.New(db)
 	users := protected.Group("/users")
 	users.Get("/", userController.Index)
@@ -74,6 +86,14 @@ func RegisterAPI(app *fiber.App, db *gorm.DB) {
 	categories.Post("/", categoryController.Store)
 	categories.Put("/:id", categoryController.Update)
 	categories.Delete("/:id", categoryController.Destroy)
+
+	shipmentController := shipmentcontroller.New(db)
+	shipments := protected.Group("/shipments")
+	shipments.Get("/", shipmentController.Index)
+	shipments.Get("/:id", shipmentController.Show)
+	shipments.Post("/", shipmentController.Store)
+	shipments.Put("/:id", shipmentController.Update)
+	shipments.Delete("/:id", shipmentController.Destroy)
 
 	officeController := officecontroller.New(db)
 	offices := protected.Group("/offices")

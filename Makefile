@@ -1,6 +1,6 @@
 .PHONY: tidy run dev frontend-install frontend-dev frontend-build build
 .PHONY: migrate-create migrate-up migrate-down migrate-status migrate-version
-.PHONY: seed-all seed-menu
+.PHONY: seed-all seed-menu seed-regions
 
 tidy:
 	go mod tidy
@@ -40,6 +40,9 @@ seed-all:
 
 seed-menu:
 	go run ./cmd/seed menu
+
+seed-regions:
+	go run ./cmd/seed regions
 
 build:
 	mkdir -p bin

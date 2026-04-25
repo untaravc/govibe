@@ -43,44 +43,49 @@
           <p v-if="fieldErrors.subtitle" class="mt-2 text-sm text-danger">{{ fieldErrors.subtitle }}</p>
         </div>
 
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div>
-            <label class="text-sm font-medium text-slate-700">Slug</label>
-            <input
-              v-model.trim="slug"
-              type="text"
-              autocomplete="off"
-              placeholder="post-slug"
-              class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-900 shadow-sm outline-none ring-slate-900/10 placeholder:text-slate-400 focus:border-slate-300 focus:ring-4"
-              required
-            />
-            <p v-if="fieldErrors.slug" class="mt-2 text-sm text-danger">{{ fieldErrors.slug }}</p>
-          </div>
-
-          <div>
-            <label class="text-sm font-medium text-slate-700">Status</label>
-            <select
-              v-model.number="status"
-              class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-900 shadow-sm outline-none ring-slate-900/10 focus:border-slate-300 focus:ring-4"
-            >
-              <option :value="1">Active</option>
-              <option :value="0">Inactive</option>
-            </select>
-            <p v-if="fieldErrors.status" class="mt-2 text-sm text-danger">{{ fieldErrors.status }}</p>
-          </div>
+        <div>
+          <label class="text-sm font-medium text-slate-700">Status</label>
+          <select
+            v-model.number="status"
+            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-900 shadow-sm outline-none ring-slate-900/10 focus:border-slate-300 focus:ring-4"
+          >
+            <option :value="1">Active</option>
+            <option :value="0">Inactive</option>
+          </select>
+          <p v-if="fieldErrors.status" class="mt-2 text-sm text-danger">{{ fieldErrors.status }}</p>
         </div>
 
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label class="text-sm font-medium text-slate-700">Image URL</label>
+            <label class="text-sm font-medium text-slate-700">Image</label>
             <input
-              v-model.trim="imageUrl"
-              type="url"
-              autocomplete="off"
-              placeholder="https://..."
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
               class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-900 shadow-sm outline-none ring-slate-900/10 placeholder:text-slate-400 focus:border-slate-300 focus:ring-4"
+              :disabled="imageUploading"
+              @change="onImageFileChange"
             />
+            <p v-if="imageUploading" class="mt-2 text-sm text-slate-500">Uploading image...</p>
+            <p v-if="imageUploadError" class="mt-2 text-sm text-danger">{{ imageUploadError }}</p>
             <p v-if="fieldErrors.image_url" class="mt-2 text-sm text-danger">{{ fieldErrors.image_url }}</p>
+            <div v-if="imageUrl" class="mt-3 flex items-center gap-3">
+              <img
+                :src="imageUrl"
+                alt=""
+                class="h-16 w-24 rounded-lg border border-slate-200 object-cover"
+              />
+              <div class="min-w-0">
+                <p class="truncate text-sm text-slate-700">{{ imageFileName || "Uploaded image" }}</p>
+                <button
+                  type="button"
+                  class="mt-1 text-sm font-medium text-danger hover:underline"
+                  :disabled="imageUploading"
+                  @click="clearImage"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
           </div>
 
           <div>
@@ -94,29 +99,21 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div>
-            <label class="text-sm font-medium text-slate-700">User ID</label>
-            <input
-              v-model.number="userId"
-              type="number"
-              min="1"
-              class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-900 shadow-sm outline-none ring-slate-900/10 focus:border-slate-300 focus:ring-4"
-              required
-            />
-            <p v-if="fieldErrors.user_id" class="mt-2 text-sm text-danger">{{ fieldErrors.user_id }}</p>
-          </div>
-
-          <div>
-            <label class="text-sm font-medium text-slate-700">Category ID</label>
-            <input
-              v-model.number="categoryId"
-              type="number"
-              min="1"
-              class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-900 shadow-sm outline-none ring-slate-900/10 focus:border-slate-300 focus:ring-4"
-            />
-            <p v-if="fieldErrors.category_id" class="mt-2 text-sm text-danger">{{ fieldErrors.category_id }}</p>
-          </div>
+        <div>
+          <label class="text-sm font-medium text-slate-700">Category</label>
+          <select
+            v-model="categoryId"
+            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-900 shadow-sm outline-none ring-slate-900/10 focus:border-slate-300 focus:ring-4"
+            :disabled="categoriesLoading"
+          >
+            <option value="">No category</option>
+            <option v-for="category in categories" :key="category.id" :value="String(category.id)">
+              {{ category.name }}
+            </option>
+          </select>
+          <p v-if="categoriesLoading" class="mt-2 text-sm text-slate-500">Loading categories...</p>
+          <p v-if="categoriesError" class="mt-2 text-sm text-danger">{{ categoriesError }}</p>
+          <p v-if="fieldErrors.category_id" class="mt-2 text-sm text-danger">{{ fieldErrors.category_id }}</p>
         </div>
 
         <div>
@@ -133,9 +130,9 @@
           <button
             type="submit"
             class="rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-            :disabled="loading"
+            :disabled="loading || imageUploading"
           >
-            {{ loading ? "Saving..." : isEdit ? "Save changes" : "Create post" }}
+            {{ imageUploading ? "Uploading..." : loading ? "Saving..." : isEdit ? "Save changes" : "Create post" }}
           </button>
         </div>
       </form>
@@ -160,13 +157,17 @@ const isEdit = computed(() => id.value.length > 0);
 
 const title = ref("");
 const subtitle = ref("");
-const slug = ref("");
 const content = ref("");
 const status = ref(1);
 const imageUrl = ref("");
-const userId = ref(1);
-const categoryId = ref(null);
+const categoryId = ref("");
 const releaseAt = ref("");
+const imageUploading = ref(false);
+const imageUploadError = ref("");
+const imageFileName = ref("");
+const categories = ref([]);
+const categoriesLoading = ref(false);
+const categoriesError = ref("");
 
 const loading = ref(false);
 const message = ref("");
@@ -194,6 +195,57 @@ function toISOFromDatetimeLocal(value) {
   return d.toISOString();
 }
 
+function clearImage() {
+  imageUrl.value = "";
+  imageFileName.value = "";
+  imageUploadError.value = "";
+}
+
+function isAllowedImageFile(file) {
+  return ["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file?.type || "");
+}
+
+async function onImageFileChange(event) {
+  const input = event.target;
+  const file = input?.files?.[0];
+  imageUploadError.value = "";
+
+  if (!file) return;
+
+  if (!isAllowedImageFile(file)) {
+    imageUploadError.value = "Only JPG, PNG, WEBP, or GIF images are allowed.";
+    input.value = "";
+    return;
+  }
+
+  imageUploading.value = true;
+  try {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("folder", "posts");
+
+    const { res, json } = await api.post("/api/upload", form, { auth: true });
+    if (!res.ok || json?.success === false) {
+      imageUploadError.value = apiErrorMessage(json, `Upload failed (${res.status})`);
+      return;
+    }
+
+    const uploadedUrl = typeof json?.result?.download_url === "string" ? json.result.download_url : "";
+    if (!uploadedUrl) {
+      imageUploadError.value = "Upload failed: missing image URL";
+      return;
+    }
+
+    imageUrl.value = uploadedUrl;
+    imageFileName.value = file.name;
+  } catch (err) {
+    imageUploadError.value = String(err);
+  } finally {
+    imageUploading.value = false;
+    input.value = "";
+  }
+}
+
 async function loadPost() {
   if (!isEdit.value) return;
 
@@ -213,12 +265,11 @@ async function loadPost() {
     const p = json?.result?.post;
     title.value = typeof p?.title === "string" ? p.title : "";
     subtitle.value = typeof p?.subtitle === "string" ? p.subtitle : "";
-    slug.value = typeof p?.slug === "string" ? p.slug : "";
     content.value = typeof p?.content === "string" ? p.content : "";
     status.value = typeof p?.status === "number" ? p.status : 1;
     imageUrl.value = typeof p?.image_url === "string" ? p.image_url : "";
-    userId.value = typeof p?.user_id === "number" ? p.user_id : 1;
-    categoryId.value = typeof p?.category_id === "number" ? p.category_id : null;
+    imageFileName.value = imageUrl.value ? "Current image" : "";
+    categoryId.value = typeof p?.category_id === "number" ? String(p.category_id) : "";
     releaseAt.value = toDatetimeLocal(p?.release_at);
   } catch (err) {
     message.value = String(err);
@@ -228,21 +279,47 @@ async function loadPost() {
   }
 }
 
+async function loadCategories() {
+  categoriesLoading.value = true;
+  categoriesError.value = "";
+
+  try {
+    const { res, json } = await api.get("/api/categories", { auth: true });
+    if (!res.ok || json?.success === false) {
+      categories.value = [];
+      categoriesError.value = apiErrorMessage(json, `Failed to load categories (${res.status})`);
+      return;
+    }
+
+    categories.value = Array.isArray(json?.result?.categories) ? json.result.categories : [];
+  } catch (err) {
+    categories.value = [];
+    categoriesError.value = String(err);
+  } finally {
+    categoriesLoading.value = false;
+  }
+}
+
 async function onSubmit() {
   message.value = "";
   messageTone.value = "neutral";
   fieldErrors.value = {};
+
+  if (imageUploading.value) {
+    message.value = "Please wait for the image upload to finish.";
+    messageTone.value = "error";
+    return;
+  }
+
   loading.value = true;
 
   try {
     const body = {
       title: title.value,
       subtitle: subtitle.value.trim() ? subtitle.value : null,
-      slug: slug.value,
       content: content.value,
       status: Number(status.value),
       image_url: imageUrl.value.trim() ? imageUrl.value : null,
-      user_id: Number(userId.value),
       release_at: toISOFromDatetimeLocal(releaseAt.value),
       category_id: categoryId.value ? Number(categoryId.value) : null
     };
@@ -278,7 +355,7 @@ async function onSubmit() {
 }
 
 onMounted(() => {
+  loadCategories();
   loadPost();
 });
 </script>
-

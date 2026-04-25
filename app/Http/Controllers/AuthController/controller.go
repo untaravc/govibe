@@ -50,13 +50,13 @@ func (ctl *AuthController) Login(c *fiber.Ctx) error {
 	var u models.User
 	if err := ctl.db.Where("email = ?", req.Email).First(&u).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return fiber.NewError(fiber.StatusUnauthorized, "invalid credentials")
+			return fiber.NewError(fiber.StatusUnprocessableEntity, "invalid credentials")
 		}
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(req.Password)); err != nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "invalid credentials")
+		return fiber.NewError(fiber.StatusUnprocessableEntity, "invalid credentials")
 	}
 
 	jwtCfg, err := configs.LoadJWTConfig()

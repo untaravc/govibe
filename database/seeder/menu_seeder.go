@@ -45,10 +45,21 @@ func SeedMenus(db *gorm.DB) error {
 	}
 
 	if err := upsertMenu(db, menu{
+		Name:   "Shipments",
+		Icon:   strPtr("mdi:truck-outline"),
+		Slug:   "shipments",
+		Order:  2,
+		Link:   strPtr("/admin/shipments"),
+		Status: 1,
+	}); err != nil {
+		return err
+	}
+
+	if err := upsertMenu(db, menu{
 		Name:   "Config",
 		Icon:   strPtr("mdi:cog-outline"),
 		Slug:   "config",
-		Order:  2,
+		Order:  3,
 		Link:   nil,
 		Status: 1,
 	}); err != nil {

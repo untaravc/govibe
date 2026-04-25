@@ -1,9 +1,11 @@
 package mediacontroller
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"path"
 	"strings"
@@ -39,7 +41,7 @@ func (ctl *MediaController) Upload(c *fiber.Ctx) error {
 	if folder == "" {
 		folder = "uploads"
 	}
-	folder = sanitizeObjectPath(folder)
+	folder = prefixedObjectPath(cfg.UploadPrefix, folder)
 
 	originalName := sanitizeFilename(fileHeader.Filename)
 	if originalName == "" {
@@ -56,10 +58,25 @@ func (ctl *MediaController) Upload(c *fiber.Ctx) error {
 	}
 	defer func() { _ = src.Close() }()
 
+	head := make([]byte, 512)
+	n, readErr := src.Read(head)
+	if readErr != nil && readErr != io.EOF {
+		return fiber.NewError(fiber.StatusBadRequest, "failed to read file")
+	}
+	if n == 0 {
+		return fiber.NewError(fiber.StatusBadRequest, "empty file")
+	}
+
+	contentType := http.DetectContentType(head[:n])
+	if !isAllowedImageContentType(contentType) {
+		return fiber.NewError(fiber.StatusUnprocessableEntity, "only JPG, PNG, WEBP, or GIF images are allowed")
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	downloadURL, uploadErr := uploadToFirebaseStorage(ctx, cfg, objectName, fileHeader.Header.Get("Content-Type"), src)
+	reader := io.MultiReader(bytes.NewReader(head[:n]), src)
+	downloadURL, uploadErr := uploadToFirebaseStorage(ctx, cfg, objectName, contentType, reader)
 	if uploadErr != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, uploadErr.Error())
 	}
@@ -69,9 +86,27 @@ func (ctl *MediaController) Upload(c *fiber.Ctx) error {
 		"name":         objectName,
 		"filename":     originalName,
 		"size":         fileHeader.Size,
-		"content_type": fileHeader.Header.Get("Content-Type"),
+		"content_type": contentType,
 		"download_url": downloadURL,
 	})
+}
+
+func isAllowedImageContentType(contentType string) bool {
+	switch strings.ToLower(strings.TrimSpace(contentType)) {
+	case "image/jpeg", "image/png", "image/webp", "image/gif":
+		return true
+	default:
+		return false
+	}
+}
+
+func prefixedObjectPath(prefix, folder string) string {
+	folder = sanitizeObjectPath(folder)
+	prefix = sanitizeObjectPath(prefix)
+	if prefix == "" || folder == prefix || strings.HasPrefix(folder, prefix+"/") {
+		return folder
+	}
+	return prefix + "/" + folder
 }
 
 func uploadToFirebaseStorage(ctx context.Context, cfg configs.FirebaseConfig, objectName, contentType string, r io.Reader) (string, error) {
