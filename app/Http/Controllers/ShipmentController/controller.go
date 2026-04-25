@@ -2,7 +2,9 @@ package shipmentcontroller
 
 import (
 	"errors"
+	"fmt"
 	"strings"
+	"time"
 
 	authmiddleware "govibe/app/Http/Middleware/AuthMiddleware"
 	"govibe/app/Http/Response"
@@ -18,16 +20,96 @@ type ShipmentController struct {
 	db *gorm.DB
 }
 
+type shipmentStatusItem struct {
+	Status uint   `json:"status"`
+	Name   string `json:"name"`
+}
+
+const shipmentStatusCreated uint = 100
+const shipmentLogStatusPlannedTransit uint = 0
+
 func New(db *gorm.DB) *ShipmentController {
 	return &ShipmentController{db: db}
 }
 
+func shipmentStatuses() []shipmentStatusItem {
+	return []shipmentStatusItem{
+		{Status: shipmentStatusCreated, Name: "Dibuat"},
+		{Status: 200, Name: "Perjalanan"},
+		{Status: 250, Name: "Tiba di Transit"},
+		{Status: 251, Name: "Berangkat dari transit"},
+		{Status: 300, Name: "Sampai Tujuan"},
+	}
+}
+
+func shipmentStatusName(status uint) string {
+	for _, s := range shipmentStatuses() {
+		if s.Status == status {
+			return s.Name
+		}
+	}
+	return "Tidak diketahui"
+}
+
+func (ctl *ShipmentController) ShipmentStatusList(c *fiber.Ctx) error {
+	return response.OK(c, "ok", fiber.Map{"shipment_statuses": shipmentStatuses()})
+}
+
+func (ctl *ShipmentController) Track(c *fiber.Ctx) error {
+	code := strings.TrimSpace(c.Query("code"))
+	if code == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "shipment code is required")
+	}
+
+	var s models.Shipment
+	if err := ctl.db.Where("code = ?", code).First(&s).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fiber.NewError(fiber.StatusNotFound, "shipment not found")
+		}
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	return response.OK(c, "ok", fiber.Map{
+		"shipment": fiber.Map{
+			"code":        s.Code,
+			"status":      s.Status,
+			"status_name": shipmentStatusName(s.Status),
+			"created_at":  s.CreatedAt,
+			"updated_at":  s.UpdatedAt,
+		},
+	})
+}
+
 func (ctl *ShipmentController) Index(c *fiber.Ctx) error {
 	var shipments []models.Shipment
-	if err := ctl.db.Order("id desc").Find(&shipments).Error; err != nil {
+	q := ctl.db.Model(&models.Shipment{})
+
+	shipmentType := strings.ToLower(strings.TrimSpace(c.Query("type")))
+	if shipmentType != "" {
+		statuses, ok := shipmentStatusesForType(shipmentType)
+		if !ok {
+			return fiber.NewError(fiber.StatusUnprocessableEntity, "invalid shipment type")
+		}
+		q = q.Where("status IN ?", statuses)
+	}
+
+	if err := q.Order("id desc").Find(&shipments).Error; err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 	return response.OK(c, "ok", fiber.Map{"shipments": shipments})
+}
+
+func shipmentStatusesForType(shipmentType string) ([]uint, bool) {
+	switch shipmentType {
+	case "departure":
+		return []uint{shipmentStatusCreated}, true
+	case "transit":
+		return []uint{200, 250, 251}, true
+	case "arrive":
+		return []uint{300}, true
+	default:
+		return nil, false
+	}
 }
 
 func (ctl *ShipmentController) Show(c *fiber.Ctx) error {
@@ -37,7 +119,12 @@ func (ctl *ShipmentController) Show(c *fiber.Ctx) error {
 	}
 
 	var s models.Shipment
-	if err := ctl.db.Preload("Details").First(&s, uint(id)).Error; err != nil {
+	if err := ctl.db.
+		Preload("Details").
+		Preload("Logs", func(db *gorm.DB) *gorm.DB {
+			return db.Where("status = ?", shipmentLogStatusPlannedTransit).Order("id asc")
+		}).
+		First(&s, uint(id)).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return fiber.NewError(fiber.StatusNotFound, "shipment not found")
 		}
@@ -68,6 +155,10 @@ func (ctl *ShipmentController) Store(c *fiber.Ctx) error {
 	for i := range req.Details {
 		req.Details[i].ItemName = strings.TrimSpace(req.Details[i].ItemName)
 	}
+	if req.Code == "" {
+		req.Code = generateShipmentCode()
+	}
+	req.Status = shipmentStatusCreated
 
 	if errs := appvalidator.Validate(req); len(errs) > 0 {
 		return response.Error(c, fiber.StatusUnprocessableEntity, "validation error", fiber.Map{"errors": errs})
@@ -116,7 +207,16 @@ func (ctl *ShipmentController) Store(c *fiber.Ctx) error {
 			}
 		}
 
-		if err := tx.Preload("Details").First(&created, s.ID).Error; err != nil {
+		if err := createTransitLogs(tx, s.ID, userID, req.Transits); err != nil {
+			return err
+		}
+
+		if err := tx.
+			Preload("Details").
+			Preload("Logs", func(db *gorm.DB) *gorm.DB {
+				return db.Where("status = ?", shipmentLogStatusPlannedTransit).Order("id asc")
+			}).
+			First(&created, s.ID).Error; err != nil {
 			return err
 		}
 		return nil
@@ -170,6 +270,11 @@ func (ctl *ShipmentController) Update(c *fiber.Ctx) error {
 
 	if errs := appvalidator.Validate(req); len(errs) > 0 {
 		return response.Error(c, fiber.StatusUnprocessableEntity, "validation error", fiber.Map{"errors": errs})
+	}
+
+	userID, err := authenticatedUserID(c)
+	if err != nil {
+		return err
 	}
 
 	var updated models.Shipment
@@ -253,7 +358,24 @@ func (ctl *ShipmentController) Update(c *fiber.Ctx) error {
 			}
 		}
 
-		return tx.Preload("Details").First(&updated, uint(id)).Error
+		if req.Transits != nil {
+			if err := tx.
+				Where("shipment_id = ?", uint(id)).
+				Where("status = ?", shipmentLogStatusPlannedTransit).
+				Delete(&models.ShipmentLog{}).Error; err != nil {
+				return err
+			}
+			if err := createTransitLogs(tx, uint(id), userID, *req.Transits); err != nil {
+				return err
+			}
+		}
+
+		return tx.
+			Preload("Details").
+			Preload("Logs", func(db *gorm.DB) *gorm.DB {
+				return db.Where("status = ?", shipmentLogStatusPlannedTransit).Order("id asc")
+			}).
+			First(&updated, uint(id)).Error
 	}); err != nil {
 		if fe, ok := err.(*fiber.Error); ok && fe != nil {
 			return fe
@@ -272,6 +394,9 @@ func (ctl *ShipmentController) Destroy(c *fiber.Ctx) error {
 
 	if err := ctl.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("shipment_id = ?", uint(id)).Delete(&models.ShipmentDetail{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("shipment_id = ?", uint(id)).Delete(&models.ShipmentLog{}).Error; err != nil {
 			return err
 		}
 		res := tx.Delete(&models.Shipment{}, uint(id))
@@ -298,4 +423,27 @@ func authenticatedUserID(c *fiber.Ctx) (uint, error) {
 		return 0, fiber.NewError(fiber.StatusUnauthorized, "authenticated user not found")
 	}
 	return userID, nil
+}
+
+func generateShipmentCode() string {
+	now := time.Now().UTC()
+	return fmt.Sprintf("SHP-%s-%06d", now.Format("20060102150405"), now.Nanosecond()/1000)
+}
+
+func createTransitLogs(tx *gorm.DB, shipmentID uint, userID uint, transits []shipmentTransitInput) error {
+	if len(transits) == 0 {
+		return nil
+	}
+
+	logs := make([]models.ShipmentLog, 0, len(transits))
+	for _, t := range transits {
+		logs = append(logs, models.ShipmentLog{
+			ShipmentID: shipmentID,
+			OfficeID:   t.OfficeID,
+			UserID:     userID,
+			Status:     shipmentLogStatusPlannedTransit,
+		})
+	}
+
+	return tx.Create(&logs).Error
 }

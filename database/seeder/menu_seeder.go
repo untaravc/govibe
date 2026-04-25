@@ -49,16 +49,68 @@ func SeedMenus(db *gorm.DB) error {
 		Icon:   strPtr("mdi:truck-outline"),
 		Slug:   "shipments",
 		Order:  2,
-		Link:   strPtr("/admin/shipments"),
+		Link:   nil,
 		Status: 1,
 	}); err != nil {
 		return err
+	}
+
+	var shipments menu
+	if err := db.Select("id").Where("slug = ?", "shipments").First(&shipments).Error; err != nil {
+		return err
+	}
+
+	shipmentChildren := []menu{
+		{
+			Name:     "Departure",
+			Icon:     strPtr("mdi:truck-fast-outline"),
+			Slug:     "shipments-departure",
+			ParentID: &shipments.ID,
+			Order:    1,
+			Link:     strPtr("/admin/shipments?type=departure"),
+			Status:   1,
+		},
+		{
+			Name:     "Transit",
+			Icon:     strPtr("mdi:truck-delivery-outline"),
+			Slug:     "shipments-transit",
+			ParentID: &shipments.ID,
+			Order:    2,
+			Link:     strPtr("/admin/shipments?type=transit"),
+			Status:   1,
+		},
+		{
+			Name:     "Arrive",
+			Icon:     strPtr("mdi:truck-check-outline"),
+			Slug:     "shipments-arrive",
+			ParentID: &shipments.ID,
+			Order:    3,
+			Link:     strPtr("/admin/shipments?type=arrive"),
+			Status:   1,
+		},
+	}
+
+	for _, m := range shipmentChildren {
+		if err := upsertMenu(db, m); err != nil {
+			return err
+		}
 	}
 
 	if err := upsertMenu(db, menu{
 		Name:   "Config",
 		Icon:   strPtr("mdi:cog-outline"),
 		Slug:   "config",
+		Order:  4,
+		Link:   nil,
+		Status: 1,
+	}); err != nil {
+		return err
+	}
+
+	if err := upsertMenu(db, menu{
+		Name:   "Broadcast",
+		Icon:   strPtr("mdi:file-document-edit-outline"),
+		Slug:   "broadcast",
 		Order:  3,
 		Link:   nil,
 		Status: 1,
@@ -68,6 +120,11 @@ func SeedMenus(db *gorm.DB) error {
 
 	var config menu
 	if err := db.Select("id").Where("slug = ?", "config").First(&config).Error; err != nil {
+		return err
+	}
+
+	var broadcast menu
+	if err := db.Select("id").Where("slug = ?", "broadcast").First(&broadcast).Error; err != nil {
 		return err
 	}
 
@@ -118,18 +175,27 @@ func SeedMenus(db *gorm.DB) error {
 			Link:     strPtr("/admin/categories"),
 			Status:   1,
 		},
+	}
+
+	for _, m := range children {
+		if err := upsertMenu(db, m); err != nil {
+			return err
+		}
+	}
+
+	broadcastChildren := []menu{
 		{
 			Name:     "Posts",
 			Icon:     strPtr("mdi:file-document-outline"),
 			Slug:     "posts",
-			ParentID: &config.ID,
-			Order:    6,
+			ParentID: &broadcast.ID,
+			Order:    1,
 			Link:     strPtr("/admin/posts"),
 			Status:   1,
 		},
 	}
 
-	for _, m := range children {
+	for _, m := range broadcastChildren {
 		if err := upsertMenu(db, m); err != nil {
 			return err
 		}

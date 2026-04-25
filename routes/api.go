@@ -33,6 +33,9 @@ func RegisterAPI(app *fiber.App, db *gorm.DB) {
 	api.Get("/validate-email-token", authController.ValidateEmailToken)
 	api.Post("/update-password-with-token", authController.UpdatePasswordWithToken)
 
+	shipmentController := shipmentcontroller.New(db)
+	api.Get("/shipment-track", shipmentController.Track)
+
 	// Protected API endpoints (bearer token required).
 	protected := api.Group("", authmiddleware.New(db))
 	protected.Post("/logout", authController.Logout)
@@ -87,7 +90,7 @@ func RegisterAPI(app *fiber.App, db *gorm.DB) {
 	categories.Put("/:id", categoryController.Update)
 	categories.Delete("/:id", categoryController.Destroy)
 
-	shipmentController := shipmentcontroller.New(db)
+	protected.Get("/shipment-status-list", shipmentController.ShipmentStatusList)
 	shipments := protected.Group("/shipments")
 	shipments.Get("/", shipmentController.Index)
 	shipments.Get("/:id", shipmentController.Show)

@@ -174,7 +174,11 @@ const routes = [
 const router = createRouter({
   // Keep router base at "/" even if Vite `base` is set for static assets (e.g. /static/dist/).
   history: createWebHistory("/"),
-  routes
+  routes,
+  scrollBehavior(to) {
+    if (to.hash) return { el: to.hash, behavior: "smooth" };
+    return { top: 0 };
+  }
 });
 
 function getToken() {

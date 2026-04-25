@@ -24,22 +24,11 @@
             <input
               v-model.trim="code"
               type="text"
-              placeholder="SHP-0001"
-              class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-900 shadow-sm outline-none ring-slate-900/10 placeholder:text-slate-400 focus:border-slate-300 focus:ring-4"
-              required
+              :placeholder="isEdit ? 'Shipment code' : 'Auto generated'"
+              class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-slate-500 shadow-sm outline-none ring-slate-900/10 placeholder:text-slate-400 disabled:cursor-not-allowed"
+              disabled
             />
             <p v-if="fieldErrors.code" class="mt-2 text-sm text-danger">{{ fieldErrors.code }}</p>
-          </div>
-
-          <div>
-            <label class="text-sm font-medium text-slate-700">Status</label>
-            <input
-              v-model.number="status"
-              type="number"
-              min="0"
-              class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-900 shadow-sm outline-none ring-slate-900/10 focus:border-slate-300 focus:ring-4"
-            />
-            <p v-if="fieldErrors.status" class="mt-2 text-sm text-danger">{{ fieldErrors.status }}</p>
           </div>
 
           <div class="md:col-span-2">
@@ -114,11 +103,13 @@
           <div>
             <label class="text-sm font-medium text-slate-700">Price</label>
             <input
-              v-model.number="price"
-              type="number"
-              min="0"
-              step="0.01"
+              :value="priceDisplay"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
               class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-900 shadow-sm outline-none ring-slate-900/10 focus:border-slate-300 focus:ring-4"
+              @input="onPriceInput"
+              @blur="normalizePriceInput"
             />
             <p v-if="fieldErrors.price" class="mt-2 text-sm text-danger">{{ fieldErrors.price }}</p>
           </div>
@@ -139,7 +130,7 @@
 
         <div class="grid grid-cols-2 gap-4 md:grid-cols-5">
           <div>
-            <label class="text-sm font-medium text-slate-700">Wight</label>
+            <label class="text-sm font-medium text-slate-700">Weight (gram)</label>
             <input
               v-model.number="wight"
               type="number"
@@ -149,7 +140,7 @@
             />
           </div>
           <div>
-            <label class="text-sm font-medium text-slate-700">Length</label>
+            <label class="text-sm font-medium text-slate-700">Length (cm)</label>
             <input
               v-model.number="length"
               type="number"
@@ -159,7 +150,7 @@
             />
           </div>
           <div>
-            <label class="text-sm font-medium text-slate-700">Width</label>
+            <label class="text-sm font-medium text-slate-700">Width (cm)</label>
             <input
               v-model.number="width"
               type="number"
@@ -169,7 +160,7 @@
             />
           </div>
           <div>
-            <label class="text-sm font-medium text-slate-700">Height</label>
+            <label class="text-sm font-medium text-slate-700">Height (cm)</label>
             <input
               v-model.number="height"
               type="number"
@@ -191,12 +182,11 @@
         </div>
 
         <div class="overflow-auto rounded-xl border border-slate-200">
-          <table class="w-full min-w-[840px] text-left text-sm">
+          <table class="w-full min-w-[640px] text-left text-sm">
             <thead class="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
               <tr>
                 <th class="px-4 py-3">Item</th>
                 <th class="px-4 py-3">Price</th>
-                <th class="px-4 py-3">Category</th>
                 <th class="px-4 py-3 text-right">Action</th>
               </tr>
             </thead>
@@ -220,18 +210,6 @@
                     class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-900 shadow-sm outline-none ring-slate-900/10 focus:border-slate-300 focus:ring-4"
                   />
                 </td>
-                <td class="px-4 py-3">
-                  <select
-                    v-model="d.category_id"
-                    class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-900 shadow-sm outline-none ring-slate-900/10 focus:border-slate-300 focus:ring-4"
-                    :disabled="categoriesLoading"
-                  >
-                    <option value="">No category</option>
-                    <option v-for="c in categories" :key="c.id" :value="String(c.id)">
-                      {{ c.name }}
-                    </option>
-                  </select>
-                </td>
                 <td class="px-4 py-3 text-right">
                   <button
                     type="button"
@@ -243,10 +221,66 @@
                 </td>
               </tr>
               <tr v-if="details.length === 0">
-                <td class="px-4 py-8 text-center text-slate-500" colspan="4">No items.</td>
+                <td class="px-4 py-8 text-center text-slate-500" colspan="3">No items.</td>
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <div class="rounded-xl border border-slate-200">
+          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
+            <div>
+              <h4 class="text-sm font-semibold text-slate-900">Transit</h4>
+              <p class="mt-1 text-xs text-slate-500">Add one or more transit offices for this shipment route.</p>
+            </div>
+            <button
+              type="button"
+              class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="officesLoading"
+              @click="addTransit"
+            >
+              Add transit
+            </button>
+          </div>
+
+          <div class="overflow-auto">
+            <table class="w-full min-w-[520px] text-left text-sm">
+              <thead class="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
+                <tr>
+                  <th class="px-4 py-3">Office</th>
+                  <th class="px-4 py-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200">
+                <tr v-for="(t, idx) in transits" :key="idx">
+                  <td class="px-4 py-3">
+                    <select
+                      v-model="t.office_id"
+                      class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-900 shadow-sm outline-none ring-slate-900/10 focus:border-slate-300 focus:ring-4"
+                      :disabled="officesLoading"
+                    >
+                      <option value="">Select transit office</option>
+                      <option v-for="o in offices" :key="o.id" :value="String(o.id)">
+                        {{ o.name }}
+                      </option>
+                    </select>
+                  </td>
+                  <td class="px-4 py-3 text-right">
+                    <button
+                      type="button"
+                      class="rounded-lg px-3 py-2 text-sm font-medium text-danger hover:bg-rose-50"
+                      @click="removeTransit(idx)"
+                    >
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+                <tr v-if="transits.length === 0">
+                  <td class="px-4 py-8 text-center text-slate-500" colspan="2">No transit offices.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <p v-if="message" class="text-sm" :class="messageToneClass">{{ message }}</p>
@@ -286,7 +320,7 @@ const customerEmail = ref("");
 const officeOriginId = ref("");
 const officeDestinationId = ref("");
 const price = ref(0);
-const status = ref(0);
+const priceDisplay = ref("0");
 const priceType = ref("weight");
 const wight = ref(0);
 const length = ref(0);
@@ -294,14 +328,11 @@ const width = ref(0);
 const height = ref(0);
 
 const details = ref([]);
+const transits = ref([]);
 
 const offices = ref([]);
 const officesLoading = ref(false);
 const officesError = ref("");
-
-const categories = ref([]);
-const categoriesLoading = ref(false);
-const categoriesError = ref("");
 
 const loading = ref(false);
 const message = ref("");
@@ -315,11 +346,41 @@ const messageToneClass = computed(() => {
 });
 
 function addDetail() {
-  details.value.push({ item_name: "", item_price: 0, category_id: "" });
+  details.value.push({ item_name: "", item_price: 0 });
 }
 
 function removeDetail(idx) {
   details.value.splice(idx, 1);
+}
+
+function addTransit() {
+  transits.value.push({ office_id: "" });
+}
+
+function removeTransit(idx) {
+  transits.value.splice(idx, 1);
+}
+
+function formatDigitGroup(value) {
+  const digits = String(value ?? "").replace(/\D/g, "");
+  if (!digits) return "";
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+function setPriceValue(value) {
+  const numericValue = Number(String(value ?? "").replace(/\D/g, "") || 0);
+  price.value = numericValue;
+  priceDisplay.value = formatDigitGroup(numericValue);
+}
+
+function onPriceInput(event) {
+  setPriceValue(event?.target?.value || "");
+}
+
+function normalizePriceInput() {
+  if (!priceDisplay.value) {
+    setPriceValue(0);
+  }
 }
 
 async function loadOffices() {
@@ -338,25 +399,6 @@ async function loadOffices() {
     officesError.value = String(err);
   } finally {
     officesLoading.value = false;
-  }
-}
-
-async function loadCategories() {
-  categoriesLoading.value = true;
-  categoriesError.value = "";
-  try {
-    const { res, json } = await api.get("/api/categories", { auth: true });
-    if (!res.ok || json?.success === false) {
-      categories.value = [];
-      categoriesError.value = apiErrorMessage(json, `Failed to load categories (${res.status})`);
-      return;
-    }
-    categories.value = Array.isArray(json?.result?.categories) ? json.result.categories : [];
-  } catch (err) {
-    categories.value = [];
-    categoriesError.value = String(err);
-  } finally {
-    categoriesLoading.value = false;
   }
 }
 
@@ -383,8 +425,7 @@ async function loadShipment() {
     customerEmail.value = typeof s?.customer_email === "string" ? s.customer_email : "";
     officeOriginId.value = s?.office_origin_id ? String(s.office_origin_id) : "";
     officeDestinationId.value = s?.office_destination_id ? String(s.office_destination_id) : "";
-    price.value = Number(s?.price || 0);
-    status.value = Number(s?.status || 0);
+    setPriceValue(s?.price || 0);
     priceType.value = typeof s?.price_type === "string" ? s.price_type : "weight";
     wight.value = Number(s?.wight || 0);
     length.value = Number(s?.length || 0);
@@ -394,8 +435,12 @@ async function loadShipment() {
     const incoming = Array.isArray(s?.details) ? s.details : [];
     details.value = incoming.map((d) => ({
       item_name: typeof d?.item_name === "string" ? d.item_name : "",
-      item_price: Number(d?.item_price || 0),
-      category_id: d?.category_id ? String(d.category_id) : ""
+      item_price: Number(d?.item_price || 0)
+    }));
+
+    const incomingLogs = Array.isArray(s?.logs) ? s.logs : [];
+    transits.value = incomingLogs.map((log) => ({
+      office_id: log?.office_id ? String(log.office_id) : ""
     }));
   } catch (err) {
     message.value = String(err);
@@ -420,7 +465,6 @@ async function onSubmit() {
       office_origin_id: officeOriginId.value ? Number(officeOriginId.value) : null,
       office_destination_id: officeDestinationId.value ? Number(officeDestinationId.value) : null,
       price: Number(price.value || 0),
-      status: Number(status.value || 0),
       price_type: priceType.value,
       wight: Number(wight.value || 0),
       length: Number(length.value || 0),
@@ -428,9 +472,13 @@ async function onSubmit() {
       height: Number(height.value || 0),
       details: details.value.map((d) => ({
         item_name: d.item_name,
-        item_price: Number(d.item_price || 0),
-        category_id: d.category_id ? Number(d.category_id) : null
-      }))
+        item_price: Number(d.item_price || 0)
+      })),
+      transits: transits.value
+        .filter((t) => t.office_id)
+        .map((t) => ({
+          office_id: Number(t.office_id)
+        }))
     };
 
     const { res, json } = isEdit.value
@@ -465,9 +513,7 @@ async function onSubmit() {
 
 onMounted(() => {
   loadOffices();
-  loadCategories();
   loadShipment();
   if (!isEdit.value && details.value.length === 0) addDetail();
 });
 </script>
-

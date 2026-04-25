@@ -61,13 +61,9 @@
               v-for="child in item.children"
               :key="child.id"
               :to="child.link || '#'"
-              class="group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10"
-              active-class="bg-slate-100 text-slate-900 dark:bg-white/10 dark:text-white"
-              exact-active-class="bg-slate-100 text-slate-900 dark:bg-white/10 dark:text-white"
+              class="group flex items-center rounded-xl px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-white/10"
+              :class="childLinkClasses(child)"
             >
-              <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm dark:border-white/10 dark:bg-slate-900 dark:text-slate-200">
-                <Icon :icon="resolveIcon(child.icon)" class="h-4 w-4" />
-              </span>
               <span class="min-w-0 flex-1 truncate">{{ child.name }}</span>
             </RouterLink>
           </div>
@@ -97,6 +93,10 @@ import cogOutline from "@iconify/icons-mdi/cog-outline";
 import fileDocumentEditOutline from "@iconify/icons-mdi/file-document-edit-outline";
 import shieldAccountOutline from "@iconify/icons-mdi/shield-account-outline";
 import shieldKeyOutline from "@iconify/icons-mdi/shield-key-outline";
+import truckCheckOutline from "@iconify/icons-mdi/truck-check-outline";
+import truckDeliveryOutline from "@iconify/icons-mdi/truck-delivery-outline";
+import truckFastOutline from "@iconify/icons-mdi/truck-fast-outline";
+import truckOutline from "@iconify/icons-mdi/truck-outline";
 import viewDashboardOutline from "@iconify/icons-mdi/view-dashboard-outline";
 
 defineProps({
@@ -124,6 +124,10 @@ const iconMap = {
   "mdi:shield-account-outline": shieldAccountOutline,
   "mdi:shield-key-outline": shieldKeyOutline,
   "mdi:file-document-edit-outline": fileDocumentEditOutline,
+  "mdi:truck-outline": truckOutline,
+  "mdi:truck-fast-outline": truckFastOutline,
+  "mdi:truck-delivery-outline": truckDeliveryOutline,
+  "mdi:truck-check-outline": truckCheckOutline,
   "mdi:circle-outline": circleOutline
 };
 
@@ -147,11 +151,46 @@ function toggle(item) {
   expandedById.value = { ...expandedById.value, [item.id]: !expandedById.value[item.id] };
 }
 
+function parseMenuLink(link) {
+  const value = typeof link === "string" ? link.trim() : "";
+  if (!value || value === "#") return null;
+
+  try {
+    const url = new URL(value, "http://govibe.local");
+    const query = {};
+    url.searchParams.forEach((v, k) => {
+      query[k] = v;
+    });
+    return { path: url.pathname, query };
+  } catch {
+    return { path: value.split("?")[0], query: {} };
+  }
+}
+
+function currentQueryValue(key) {
+  const value = route.query[key];
+  if (Array.isArray(value)) return value.length > 0 && value[0] != null ? String(value[0]) : "";
+  return value == null ? "" : String(value);
+}
+
+function linkQueryMatches(query) {
+  for (const [key, value] of Object.entries(query || {})) {
+    if (currentQueryValue(key) !== value) return false;
+  }
+  return true;
+}
+
 function isLinkActive(link) {
-  if (!link) return false;
+  const parsed = parseMenuLink(link);
+  if (!parsed) return false;
+
   const current = route.path;
-  if (link === "/admin") return current === "/admin" || current === "/admin/";
-  return current === link || current.startsWith(`${link}/`);
+  const isPathActive =
+    parsed.path === "/admin"
+      ? current === "/admin" || current === "/admin/"
+      : current === parsed.path || current.startsWith(`${parsed.path}/`);
+
+  return isPathActive && linkQueryMatches(parsed.query);
 }
 
 function hasActiveDescendant(item) {
@@ -163,6 +202,10 @@ function hasActiveDescendant(item) {
 function linkClasses(item) {
   const active = !item.link && hasActiveDescendant(item);
   return active ? activeClasses : "text-slate-700 dark:text-slate-200";
+}
+
+function childLinkClasses(item) {
+  return isLinkActive(item.link) ? activeClasses : "text-slate-700 dark:text-slate-200";
 }
 
 function expandToActive(tree) {
@@ -185,7 +228,7 @@ async function loadMenus() {
 }
 
 watch(
-  () => route.path,
+  () => route.fullPath,
   () => {
     if (menuTree.value.length > 0) expandToActive(menuTree.value);
   }

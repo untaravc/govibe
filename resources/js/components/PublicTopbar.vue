@@ -1,39 +1,50 @@
 <template>
-  <header class="sticky top-0 z-20 border-b border-slate-200/60 bg-white/80 backdrop-blur">
-    <div class="flex w-full items-center justify-between gap-3 px-4 py-3">
-      <div class="min-w-0">
-        <p class="text-sm font-semibold text-slate-900">GoVibe</p>
-        <p class="text-xs text-slate-500">Public site</p>
-      </div>
+  <header class="sticky top-0 z-20 border-b border-[#eadfcd] bg-[#fffaf1]/90 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
+      <RouterLink to="/" class="flex min-w-0 items-center gap-3">
+        <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#17211f] text-sm font-black text-[#f2c14e]">
+          GV
+        </span>
+        <span class="min-w-0">
+          <span class="block text-sm font-black tracking-tight text-[#17211f]">GoVibe Logistics</span>
+          <span class="block text-xs font-semibold text-[#687b75]">Shipment provider</span>
+        </span>
+      </RouterLink>
 
       <nav class="flex items-center gap-2">
         <RouterLink
           to="/"
-          class="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-          active-class="bg-slate-100 text-slate-900"
-          exact-active-class="bg-slate-100 text-slate-900"
+          class="hidden rounded-full px-4 py-2 text-sm font-bold text-[#344943] hover:bg-[#efe5d4] sm:inline-flex"
+          active-class="bg-[#efe5d4] text-[#17211f]"
+          exact-active-class="bg-[#efe5d4] text-[#17211f]"
         >
           Home
         </RouterLink>
         <RouterLink
+          :to="{ path: '/', hash: '#track' }"
+          class="hidden rounded-full px-4 py-2 text-sm font-bold text-[#344943] hover:bg-[#efe5d4] sm:inline-flex"
+        >
+          Track
+        </RouterLink>
+        <RouterLink
           v-if="!hasToken"
           to="/auth/register"
-          class="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-          active-class="bg-slate-100 text-slate-900"
+          class="hidden rounded-full px-4 py-2 text-sm font-bold text-[#344943] hover:bg-[#efe5d4] md:inline-flex"
+          active-class="bg-[#efe5d4] text-[#17211f]"
         >
           Register
         </RouterLink>
         <RouterLink
           v-if="!hasToken"
           to="/auth/login"
-          class="rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          class="rounded-full bg-[#17211f] px-4 py-2 text-sm font-bold text-white hover:bg-[#263a35]"
         >
           Login
         </RouterLink>
         <RouterLink
           v-if="hasToken"
           to="/admin"
-          class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          class="rounded-full border border-[#d8cbb8] bg-white px-4 py-2 text-sm font-bold text-[#17211f] hover:bg-[#fff4de]"
         >
           Admin site
         </RouterLink>

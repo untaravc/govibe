@@ -3,11 +3,12 @@
     <div class="rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 class="text-lg font-semibold tracking-tight text-slate-900">Shipments</h3>
-          <p class="mt-1 text-sm text-slate-600">Manage shipment records.</p>
+          <h3 class="text-lg font-semibold tracking-tight text-slate-900">{{ pageTitle }}</h3>
+          <p class="mt-1 text-sm text-slate-600">{{ pageDescription }}</p>
         </div>
 
         <button
+          v-if="canAddShipment"
           type="button"
           class="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           @click="router.push('/admin/shipments/new')"
@@ -69,17 +70,41 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
+import { computed, onMounted, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 import api from "../../api.js";
 import { apiErrorMessage } from "../../utils/apiError.js";
 
 const router = useRouter();
+const route = useRoute();
 
 const shipments = ref([]);
 const message = ref("");
 const messageTone = ref("neutral"); // neutral | success | error
+
+const shipmentTypeLabels = {
+  departure: "Departure",
+  transit: "Transit",
+  arrive: "Arrive"
+};
+
+const shipmentType = computed(() => {
+  const value = Array.isArray(route.query.type) ? route.query.type[0] : route.query.type;
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+});
+
+const pageTitle = computed(() => {
+  const label = shipmentTypeLabels[shipmentType.value];
+  return label ? `${label} Shipments` : "Shipments";
+});
+
+const pageDescription = computed(() => {
+  const label = shipmentTypeLabels[shipmentType.value];
+  return label ? `Manage ${label.toLowerCase()} shipment records.` : "Manage shipment records.";
+});
+
+const canAddShipment = computed(() => shipmentType.value === "departure");
 
 const messageToneClass = computed(() => {
   if (messageTone.value === "success") return "text-success";
@@ -97,7 +122,11 @@ async function loadShipments() {
   message.value = "";
   messageTone.value = "neutral";
   try {
-    const { res, json } = await api.get("/api/shipments", { auth: true });
+    const params = new URLSearchParams();
+    if (shipmentType.value) params.set("type", shipmentType.value);
+
+    const url = params.toString() ? `/api/shipments?${params.toString()}` : "/api/shipments";
+    const { res, json } = await api.get(url, { auth: true });
     if (!res.ok) {
       message.value = apiErrorMessage(json, `Request failed (${res.status})`);
       messageTone.value = "error";
@@ -137,5 +166,11 @@ async function onDelete(s) {
 onMounted(() => {
   loadShipments();
 });
-</script>
 
+watch(
+  () => route.query.type,
+  () => {
+    loadShipments();
+  }
+);
+</script>
