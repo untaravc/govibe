@@ -32,8 +32,15 @@ func (ctl *UserController) Index(c *fiber.Ctx) error {
 
 	page := parsePositiveIntQuery(c, "page", 1)
 
+	name := strings.TrimSpace(c.Query("name"))
+
+	baseQuery := ctl.db.Model(&models.User{})
+	if name != "" {
+		baseQuery = baseQuery.Where("name LIKE ?", "%"+name+"%")
+	}
+
 	var total int64
-	if err := ctl.db.Model(&models.User{}).Count(&total).Error; err != nil {
+	if err := baseQuery.Count(&total).Error; err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -43,7 +50,7 @@ func (ctl *UserController) Index(c *fiber.Ctx) error {
 	}
 
 	var users []models.User
-	if err := ctl.db.Order("id desc").Limit(perPage).Offset(offset).Find(&users).Error; err != nil {
+	if err := baseQuery.Order("id desc").Limit(perPage).Offset(offset).Find(&users).Error; err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -88,6 +95,14 @@ func (ctl *UserController) Store(c *fiber.Ctx) error {
 
 	req.Name = strings.TrimSpace(req.Name)
 	req.Email = strings.TrimSpace(req.Email)
+	if req.Phone != nil {
+		trimmed := strings.TrimSpace(*req.Phone)
+		if trimmed == "" {
+			req.Phone = nil
+		} else {
+			req.Phone = &trimmed
+		}
+	}
 
 	if errs := appvalidator.Validate(req); len(errs) > 0 {
 		return response.Error(c, fiber.StatusUnprocessableEntity, "validation error", fiber.Map{
@@ -103,6 +118,8 @@ func (ctl *UserController) Store(c *fiber.Ctx) error {
 	u := models.User{
 		Name:     req.Name,
 		Email:    req.Email,
+		Phone:    req.Phone,
+		RoleID:   req.RoleID,
 		Password: string(hash),
 	}
 
@@ -134,6 +151,10 @@ func (ctl *UserController) Update(c *fiber.Ctx) error {
 		trimmed := strings.TrimSpace(*req.Email)
 		req.Email = &trimmed
 	}
+	if req.Phone != nil {
+		trimmed := strings.TrimSpace(*req.Phone)
+		req.Phone = &trimmed
+	}
 
 	if errs := appvalidator.Validate(req); len(errs) > 0 {
 		return response.Error(c, fiber.StatusUnprocessableEntity, "validation error", fiber.Map{
@@ -141,7 +162,7 @@ func (ctl *UserController) Update(c *fiber.Ctx) error {
 		})
 	}
 
-	updates := make(map[string]any, 3)
+	updates := make(map[string]any, 6)
 
 	if req.Name != nil {
 		updates["name"] = *req.Name
@@ -149,6 +170,18 @@ func (ctl *UserController) Update(c *fiber.Ctx) error {
 
 	if req.Email != nil {
 		updates["email"] = *req.Email
+	}
+
+	if req.Phone != nil {
+		if *req.Phone == "" {
+			updates["phone"] = nil
+		} else {
+			updates["phone"] = *req.Phone
+		}
+	}
+
+	if req.RoleID != nil {
+		updates["role_id"] = *req.RoleID
 	}
 
 	if req.Password != nil {

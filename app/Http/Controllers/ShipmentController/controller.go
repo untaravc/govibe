@@ -93,6 +93,27 @@ func (ctl *ShipmentController) Index(c *fiber.Ctx) error {
 		q = q.Where("status IN ?", statuses)
 	}
 
+	code := strings.TrimSpace(c.Query("code"))
+	if code != "" {
+		q = q.Where("code LIKE ?", "%"+code+"%")
+	}
+
+	customerName := strings.TrimSpace(c.Query("customer_name"))
+	if customerName != "" {
+		q = q.Where("customer_name LIKE ?", "%"+customerName+"%")
+	}
+
+	createdDateRaw := strings.TrimSpace(c.Query("created_date"))
+	if createdDateRaw != "" {
+		d, err := time.Parse("2006-01-02", createdDateRaw)
+		if err != nil {
+			return fiber.NewError(fiber.StatusUnprocessableEntity, "invalid created_date")
+		}
+		start := d
+		end := d.Add(24 * time.Hour)
+		q = q.Where("created_at >= ? AND created_at < ?", start, end)
+	}
+
 	if err := q.Order("id desc").Find(&shipments).Error; err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}

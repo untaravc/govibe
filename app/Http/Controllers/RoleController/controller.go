@@ -23,7 +23,12 @@ func New(db *gorm.DB) *RoleController {
 
 func (ctl *RoleController) Index(c *fiber.Ctx) error {
 	var roles []models.Role
-	if err := ctl.db.Order("id desc").Find(&roles).Error; err != nil {
+	name := strings.TrimSpace(c.Query("name"))
+	q := ctl.db.Model(&models.Role{})
+	if name != "" {
+		q = q.Where("name LIKE ?", "%"+name+"%")
+	}
+	if err := q.Order("id desc").Find(&roles).Error; err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 	return response.OK(c, "ok", fiber.Map{

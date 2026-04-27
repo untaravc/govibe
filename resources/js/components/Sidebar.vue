@@ -1,6 +1,6 @@
 <template>
   <aside
-    class="fixed inset-y-0 left-0 z-30 -translate-x-full border-r border-slate-200/60 bg-white transition-[transform,width] duration-200 dark:border-white/10 dark:bg-slate-950 md:static md:translate-x-0"
+    class="fixed inset-y-0 left-0 z-30 -translate-x-full border-r border-blue-900/40 bg-blue-950 text-white transition-[transform,width] duration-200 md:static md:translate-x-0"
     :class="[
       open ? 'translate-x-0' : '',
       collapsed ? 'w-20' : 'w-72'
@@ -8,11 +8,11 @@
   >
     <div class="flex h-full flex-col">
       <div class="flex items-center justify-between px-4 py-4">
-        <p v-if="!collapsed" class="text-sm font-semibold tracking-tight text-slate-900 dark:text-slate-50">GoVibe Admin</p>
-        <p v-else class="text-sm font-semibold tracking-tight text-slate-900 dark:text-slate-50">GV</p>
+        <p v-if="!collapsed" class="text-sm font-semibold tracking-tight text-white">GoVibe Admin</p>
+        <p v-else class="text-sm font-semibold tracking-tight text-white">GV</p>
         <button
           type="button"
-          class="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10 md:hidden"
+          class="rounded-lg p-2 text-slate-200 hover:bg-white/10 hover:text-white md:hidden"
           @click="$emit('close')"
         >
           <span class="sr-only">Close sidebar</span>
@@ -29,21 +29,21 @@
             :to="item.link || undefined"
             type="button"
             :title="collapsed ? item.name : undefined"
-            class="group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-medium hover:bg-slate-100 dark:hover:bg-white/10"
+            class="group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-200 hover:bg-white/10 hover:text-white"
             :class="linkClasses(item)"
             :active-class="item.link ? activeClasses : undefined"
             :exact-active-class="item.link ? exactActiveClasses : undefined"
             @click="item.link ? null : toggle(item)"
           >
             <span
-              class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm dark:border-white/10 dark:bg-slate-900 dark:text-slate-200"
+              class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-sky-200 shadow-sm transition group-hover:border-sky-300/30 group-hover:bg-sky-400/10 group-hover:text-sky-100"
             >
               <Icon :icon="resolveIcon(item.icon)" class="h-5 w-5" />
             </span>
 
             <span v-if="!collapsed" class="min-w-0 flex-1 truncate">{{ item.name }}</span>
 
-            <span v-if="!collapsed && hasChildren(item)" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500">
+            <span v-if="!collapsed && hasChildren(item)" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-300/80">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -61,7 +61,7 @@
               v-for="child in item.children"
               :key="child.id"
               :to="child.link || '#'"
-              class="group flex items-center rounded-xl px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-white/10"
+              class="group flex items-center rounded-xl px-3 py-2 text-sm font-medium text-slate-200 hover:bg-white/10 hover:text-white"
               :class="childLinkClasses(child)"
             >
               <span class="min-w-0 flex-1 truncate">{{ child.name }}</span>
@@ -71,7 +71,7 @@
       </nav>
 
       <div
-        class="border-t border-slate-200/60 px-4 py-4 text-xs text-slate-500 dark:border-white/10 dark:text-slate-400"
+        class="border-t border-white/10 px-4 py-4 text-xs text-slate-300/70"
         :class="collapsed ? 'text-center' : ''"
       >
         <span v-if="!collapsed">v0.1 · Admin area</span>
@@ -114,8 +114,8 @@ defineEmits(["close"]);
 
 const route = useRoute();
 
-const activeClasses = "bg-slate-100 text-slate-900 dark:bg-white/10 dark:text-white";
-const exactActiveClasses = "bg-slate-100 text-slate-900 dark:bg-white/10 dark:text-white";
+const activeClasses = "bg-white/10 text-white ring-1 ring-sky-400/20";
+const exactActiveClasses = "bg-white/10 text-white ring-1 ring-sky-400/20";
 
 const iconMap = {
   "mdi:view-dashboard-outline": viewDashboardOutline,
@@ -201,11 +201,11 @@ function hasActiveDescendant(item) {
 
 function linkClasses(item) {
   const active = !item.link && hasActiveDescendant(item);
-  return active ? activeClasses : "text-slate-700 dark:text-slate-200";
+  return active ? activeClasses : "";
 }
 
 function childLinkClasses(item) {
-  return isLinkActive(item.link) ? activeClasses : "text-slate-700 dark:text-slate-200";
+  return isLinkActive(item.link) ? activeClasses : "";
 }
 
 function expandToActive(tree) {

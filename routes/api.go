@@ -13,6 +13,7 @@ import (
 	sectioncontroller "govibe/app/Http/Controllers/SectionController"
 	shipmentcontroller "govibe/app/Http/Controllers/ShipmentController"
 	usercontroller "govibe/app/Http/Controllers/UserController"
+	userofficecontroller "govibe/app/Http/Controllers/UserOfficeController"
 	authmiddleware "govibe/app/Http/Middleware/AuthMiddleware"
 	"govibe/app/Http/Response"
 
@@ -65,6 +66,11 @@ func RegisterAPI(app *fiber.App, db *gorm.DB) {
 	users.Post("/", userController.Store)
 	users.Put("/:id", userController.Update)
 	users.Delete("/:id", userController.Destroy)
+
+	userOfficeController := userofficecontroller.New(db)
+	users.Get("/:id/offices", userOfficeController.Index)
+	users.Post("/:id/offices", userOfficeController.Store)
+	users.Delete("/:id/offices/:office_id", userOfficeController.Destroy)
 
 	roleController := rolecontroller.New(db)
 	roles := protected.Group("/roles")

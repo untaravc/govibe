@@ -1,10 +1,12 @@
 <template>
-  <header class="sticky top-0 z-20 border-b border-slate-200/60 bg-white/80 backdrop-blur dark:border-white/10 dark:bg-slate-950/70">
+  <header
+    class="sticky top-0 z-20 border-b border-blue-900/40 bg-blue-950 text-white shadow-sm backdrop-blur"
+  >
     <div class="flex w-full items-center justify-between gap-3 px-4 py-3">
       <div class="flex items-center gap-3">
         <button
           type="button"
-          class="inline-flex items-center justify-center rounded-lg p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white md:hidden"
+          class="inline-flex items-center justify-center rounded-lg p-2 text-slate-200 hover:bg-white/10 hover:text-white md:hidden"
           @click="$emit('toggleSidebar')"
         >
           <span class="sr-only">Toggle sidebar</span>
@@ -20,7 +22,7 @@
 
         <button
           type="button"
-          class="hidden items-center justify-center rounded-lg p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white md:inline-flex"
+          class="hidden items-center justify-center rounded-lg p-2 text-slate-200 hover:bg-white/10 hover:text-white md:inline-flex"
           @click="$emit('toggleCollapse')"
         >
           <span class="sr-only">Collapse sidebar</span>
@@ -36,8 +38,8 @@
         </button>
 
         <div>
-          <p class="text-sm font-semibold text-slate-900 dark:text-slate-50">Administrator</p>
-          <p class="text-xs text-slate-500 dark:text-slate-400">GoVibe dashboard</p>
+          <p class="text-sm font-semibold tracking-tight text-white">Administrator</p>
+          <p class="text-xs text-slate-300/80">GoVibe dashboard</p>
         </div>
       </div>
 
@@ -45,30 +47,30 @@
         <div ref="menuRoot" class="relative">
           <button
             type="button"
-            class="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white shadow-sm ring-slate-900/10 hover:bg-slate-50 focus:outline-none focus:ring-4 dark:border-white/10 dark:bg-slate-950 dark:hover:bg-white/5"
+            class="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/5 shadow-sm ring-blue-500/20 hover:bg-white/10 focus:outline-none focus:ring-4"
             :aria-expanded="menuOpen ? 'true' : 'false'"
             aria-haspopup="menu"
             @click="toggleMenu"
           >
             <span class="sr-only">Open menu</span>
             <img v-if="avatarUrl" :src="avatarUrl" alt="" class="h-full w-full object-cover" />
-            <span v-else class="text-sm font-semibold text-slate-700 dark:text-slate-200">{{ initials }}</span>
+            <span v-else class="text-sm font-semibold text-white">{{ initials }}</span>
           </button>
 
           <div
             v-if="menuOpen"
             role="menu"
-            class="absolute right-0 mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-white/10 dark:bg-slate-950"
+            class="absolute right-0 mt-2 w-56 overflow-hidden rounded-xl border border-blue-900/40 bg-slate-950 shadow-lg"
           >
             <div class="px-4 py-3">
-              <p class="text-sm font-semibold text-slate-900 dark:text-slate-50">{{ displayName }}</p>
-              <p class="text-xs text-slate-500 dark:text-slate-400">{{ displayEmail }}</p>
+              <p class="text-sm font-semibold text-white">{{ displayName }}</p>
+              <p class="text-xs text-slate-300/80">{{ displayEmail }}</p>
             </div>
-            <div class="h-px bg-slate-100 dark:bg-white/10"></div>
+            <div class="h-px bg-white/10"></div>
             <RouterLink
               to="/"
               role="menuitem"
-              class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-white/5"
+              class="block px-4 py-2.5 text-sm text-slate-200 hover:bg-white/10 hover:text-white"
               @click="closeMenu"
             >
               Public Site
@@ -76,7 +78,7 @@
             <RouterLink
               :to="profilePath"
               role="menuitem"
-              class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-white/5"
+              class="block px-4 py-2.5 text-sm text-slate-200 hover:bg-white/10 hover:text-white"
               @click="closeMenu"
             >
               Profile
@@ -84,7 +86,7 @@
             <button
               type="button"
               role="menuitem"
-              class="block w-full px-4 py-2.5 text-left text-sm text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30"
+              class="block w-full px-4 py-2.5 text-left text-sm text-rose-300 hover:bg-rose-500/10 hover:text-rose-200"
               @click="logout"
             >
               Logout

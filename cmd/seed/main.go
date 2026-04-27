@@ -25,10 +25,24 @@ func main() {
 		if err := seeder.SeedRoles(db); err != nil {
 			log.Fatal(err)
 		}
+		if err := seeder.SeedCategories(db); err != nil {
+			log.Fatal(err)
+		}
+		if err := seeder.SeedOffices(db); err != nil {
+			log.Fatal(err)
+		}
 		if err := seeder.SeedUsers(db); err != nil {
 			log.Fatal(err)
 		}
 		if err := seeder.SeedMenus(db); err != nil {
+			log.Fatal(err)
+		}
+	case "categories":
+		if err := seeder.SeedCategories(db); err != nil {
+			log.Fatal(err)
+		}
+	case "offices":
+		if err := seeder.SeedOffices(db); err != nil {
 			log.Fatal(err)
 		}
 	case "menu":
@@ -50,7 +64,9 @@ func main() {
 	default:
 		fmt.Fprintln(os.Stderr, "Usage:")
 		fmt.Fprintln(os.Stderr, "  go run ./cmd/seed all")
+		fmt.Fprintln(os.Stderr, "  go run ./cmd/seed categories")
 		fmt.Fprintln(os.Stderr, "  go run ./cmd/seed menu")
+		fmt.Fprintln(os.Stderr, "  go run ./cmd/seed offices")
 		fmt.Fprintln(os.Stderr, "  go run ./cmd/seed regions")
 		fmt.Fprintln(os.Stderr, "  go run ./cmd/seed roles")
 		fmt.Fprintln(os.Stderr, "  go run ./cmd/seed users")

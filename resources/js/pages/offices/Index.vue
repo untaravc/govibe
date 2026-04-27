@@ -7,13 +7,33 @@
           <p class="mt-1 text-sm text-slate-600">Manage offices and branches.</p>
         </div>
 
-        <button
-          type="button"
-          class="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          @click="router.push('/admin/offices/new')"
-        >
-          Add office
-        </button>
+        <div class="flex flex-wrap items-center justify-end gap-2">
+          <div class="flex items-center gap-2">
+            <input
+              v-model="nameFilter"
+              type="text"
+              class="h-10 w-56 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-slate-900/10"
+              placeholder="Filter by name..."
+              autocomplete="off"
+            />
+            <button
+              v-if="nameFilter.trim()"
+              type="button"
+              class="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              @click="nameFilter = ''"
+            >
+              Clear
+            </button>
+          </div>
+
+          <button
+            type="button"
+            class="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            @click="router.push('/admin/offices/new')"
+          >
+            Add office
+          </button>
+        </div>
       </div>
 
       <p v-if="message" class="mt-4 text-sm" :class="messageToneClass">{{ message }}</p>
@@ -23,17 +43,17 @@
         <table class="w-full min-w-[980px] text-left text-sm">
           <thead class="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
             <tr>
-              <th class="px-4 py-3">ID</th>
+              <th class="px-4 py-3">No</th>
               <th class="px-4 py-3">Type</th>
               <th class="px-4 py-3">Code</th>
               <th class="px-4 py-3">Name</th>
               <th class="px-4 py-3">Status</th>
-              <th class="px-4 py-3 text-right">Action</th>
+              <th class="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-200">
-            <tr v-for="o in offices" :key="o.id">
-              <td class="px-4 py-3 text-slate-700">{{ o.id }}</td>
+            <tr v-for="(o, idx) in offices" :key="o.id">
+              <td class="px-4 py-3 text-slate-700">{{ idx + 1 }}</td>
               <td class="px-4 py-3 text-slate-700">{{ o.type }}</td>
               <td class="px-4 py-3 font-medium text-slate-900">{{ o.code }}</td>
               <td class="px-4 py-3 text-slate-700">{{ o.name }}</td>
@@ -46,20 +66,55 @@
                 </span>
               </td>
               <td class="px-4 py-3 text-right">
-                <button
-                  type="button"
-                  class="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-                  @click="router.push(`/admin/offices/${o.id}/edit`)"
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  class="ml-2 rounded-lg px-3 py-2 text-sm font-medium text-danger hover:bg-rose-50"
-                  @click="onDelete(o)"
-                >
-                  Delete
-                </button>
+                <div :ref="(el) => setActionRoot(o.id, el)" class="relative inline-block text-left">
+                  <button
+                    type="button"
+                    class="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                    :aria-expanded="actionsOpenFor === o.id ? 'true' : 'false'"
+                    aria-haspopup="menu"
+                    @click="toggleActions(o.id)"
+                  >
+                    Actions
+                    <svg viewBox="0 0 24 24" fill="none" class="h-4 w-4" xmlns="http://www.w3.org/2000/svg">
+                      <path
+                        d="M6 9l6 6 6-6"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </button>
+
+                  <div
+                    v-if="actionsOpenFor === o.id"
+                    role="menu"
+                    class="absolute right-0 z-10 mt-2 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg"
+                  >
+                    <button
+                      type="button"
+                      role="menuitem"
+                      class="block w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50"
+                      @click="
+                        closeActions();
+                        router.push(`/admin/offices/${o.id}/edit`);
+                      "
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      class="block w-full px-4 py-2.5 text-left text-sm text-rose-600 hover:bg-rose-50"
+                      @click="
+                        closeActions();
+                        onDelete(o);
+                      "
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
               </td>
             </tr>
 
@@ -74,7 +129,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 
 import api from "../../api.js";
@@ -83,8 +138,13 @@ import { apiErrorMessage } from "../../utils/apiError.js";
 const router = useRouter();
 
 const offices = ref([]);
+const nameFilter = ref("");
 const message = ref("");
 const messageTone = ref("neutral"); // neutral | success | error
+const actionsOpenFor = ref(null);
+
+const actionRoots = new Map();
+let nameFilterTimer = null;
 
 const messageToneClass = computed(() => {
   if (messageTone.value === "success") return "text-success";
@@ -92,11 +152,45 @@ const messageToneClass = computed(() => {
   return "text-slate-700";
 });
 
+function setActionRoot(id, el) {
+  if (!id) return;
+  if (!el) {
+    actionRoots.delete(id);
+    return;
+  }
+  actionRoots.set(id, el);
+}
+
+function closeActions() {
+  actionsOpenFor.value = null;
+}
+
+function toggleActions(id) {
+  actionsOpenFor.value = actionsOpenFor.value === id ? null : id;
+}
+
+function onWindowClick(e) {
+  if (!actionsOpenFor.value) return;
+  const root = actionRoots.get(actionsOpenFor.value);
+  if (!root) return closeActions();
+  if (root === e.target || root.contains(e.target)) return;
+  closeActions();
+}
+
+function onWindowKeydown(e) {
+  if (!actionsOpenFor.value) return;
+  if (e.key === "Escape") closeActions();
+}
+
 async function loadOffices() {
   message.value = "";
   messageTone.value = "neutral";
   try {
-    const { res, json } = await api.get("/api/offices", { auth: true });
+    const params = new URLSearchParams();
+    if (nameFilter.value.trim()) params.set("name", nameFilter.value.trim());
+    const suffix = params.toString();
+
+    const { res, json } = await api.get(`/api/offices${suffix ? `?${suffix}` : ""}`, { auth: true });
     if (!res.ok) {
       message.value = apiErrorMessage(json, `Request failed (${res.status})`);
       messageTone.value = "error";
@@ -134,6 +228,21 @@ async function onDelete(o) {
 }
 
 onMounted(() => {
+  window.addEventListener("click", onWindowClick, true);
+  window.addEventListener("keydown", onWindowKeydown);
   loadOffices();
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("click", onWindowClick, true);
+  window.removeEventListener("keydown", onWindowKeydown);
+  if (nameFilterTimer) clearTimeout(nameFilterTimer);
+});
+
+watch(nameFilter, () => {
+  if (nameFilterTimer) clearTimeout(nameFilterTimer);
+  nameFilterTimer = setTimeout(() => {
+    loadOffices();
+  }, 350);
 });
 </script>

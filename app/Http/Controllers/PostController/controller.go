@@ -27,7 +27,12 @@ func New(db *gorm.DB) *PostController {
 
 func (ctl *PostController) Index(c *fiber.Ctx) error {
 	var posts []models.Post
-	if err := ctl.db.Order("id desc").Find(&posts).Error; err != nil {
+	title := strings.TrimSpace(c.Query("title"))
+	q := ctl.db.Model(&models.Post{})
+	if title != "" {
+		q = q.Where("title LIKE ?", "%"+title+"%")
+	}
+	if err := q.Order("id desc").Find(&posts).Error; err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 	return response.OK(c, "ok", fiber.Map{

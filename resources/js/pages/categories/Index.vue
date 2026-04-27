@@ -62,18 +62,17 @@
         <table class="w-full min-w-[860px] text-left text-sm">
           <thead class="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
             <tr>
-              <th class="px-4 py-3">ID</th>
+              <th class="px-4 py-3">No</th>
               <th class="px-4 py-3">Section</th>
               <th class="px-4 py-3">Name</th>
               <th class="px-4 py-3">Slug</th>
               <th class="px-4 py-3">Status</th>
-              <th class="px-4 py-3">Created</th>
-              <th class="px-4 py-3 text-right">Action</th>
+              <th class="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-200">
-            <tr v-for="c in categories" :key="c.id">
-              <td class="px-4 py-3 text-slate-700">{{ c.id }}</td>
+            <tr v-for="(c, idx) in categories" :key="c.id">
+              <td class="px-4 py-3 text-slate-700">{{ idx + 1 }}</td>
               <td class="px-4 py-3 text-slate-700">{{ c.section }}</td>
               <td class="px-4 py-3 font-medium text-slate-900">{{ c.name }}</td>
               <td class="px-4 py-3 text-slate-700">{{ c.slug }}</td>
@@ -85,27 +84,61 @@
                   {{ c.status ? "Active" : "Inactive" }}
                 </span>
               </td>
-              <td class="px-4 py-3 text-slate-700">{{ formatDate(c.created_at) }}</td>
               <td class="px-4 py-3 text-right">
-                <button
-                  type="button"
-                  class="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-                  @click="router.push(`/admin/categories/${c.id}/edit`)"
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  class="ml-2 rounded-lg px-3 py-2 text-sm font-medium text-danger hover:bg-rose-50"
-                  @click="onDelete(c)"
-                >
-                  Delete
-                </button>
+                <div :ref="(el) => setActionRoot(c.id, el)" class="relative inline-block text-left">
+                  <button
+                    type="button"
+                    class="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                    :aria-expanded="actionsOpenFor === c.id ? 'true' : 'false'"
+                    aria-haspopup="menu"
+                    @click="toggleActions(c.id)"
+                  >
+                    Actions
+                    <svg viewBox="0 0 24 24" fill="none" class="h-4 w-4" xmlns="http://www.w3.org/2000/svg">
+                      <path
+                        d="M6 9l6 6 6-6"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </button>
+
+                  <div
+                    v-if="actionsOpenFor === c.id"
+                    role="menu"
+                    class="absolute right-0 z-10 mt-2 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg"
+                  >
+                    <button
+                      type="button"
+                      role="menuitem"
+                      class="block w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50"
+                      @click="
+                        closeActions();
+                        router.push(`/admin/categories/${c.id}/edit`);
+                      "
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      class="block w-full px-4 py-2.5 text-left text-sm text-rose-600 hover:bg-rose-50"
+                      @click="
+                        closeActions();
+                        onDelete(c);
+                      "
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
               </td>
             </tr>
 
             <tr v-if="categories.length === 0 && !message">
-              <td class="px-4 py-8 text-center text-slate-500" colspan="7">No categories found.</td>
+              <td class="px-4 py-8 text-center text-slate-500" colspan="6">No categories found.</td>
             </tr>
           </tbody>
         </table>
@@ -115,7 +148,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 
 import api from "../../api.js";
@@ -132,6 +165,9 @@ const sectionsError = ref("");
 const filterSection = ref("");
 const filterName = ref("");
 const filterStatus = ref("");
+const actionsOpenFor = ref(null);
+
+const actionRoots = new Map();
 
 const messageToneClass = computed(() => {
   if (messageTone.value === "success") return "text-success";
@@ -139,11 +175,34 @@ const messageToneClass = computed(() => {
   return "text-slate-700";
 });
 
-function formatDate(value) {
-  if (!value) return "—";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return String(value);
-  return d.toLocaleString();
+function setActionRoot(id, el) {
+  if (!id) return;
+  if (!el) {
+    actionRoots.delete(id);
+    return;
+  }
+  actionRoots.set(id, el);
+}
+
+function closeActions() {
+  actionsOpenFor.value = null;
+}
+
+function toggleActions(id) {
+  actionsOpenFor.value = actionsOpenFor.value === id ? null : id;
+}
+
+function onWindowClick(e) {
+  if (!actionsOpenFor.value) return;
+  const root = actionRoots.get(actionsOpenFor.value);
+  if (!root) return closeActions();
+  if (root === e.target || root.contains(e.target)) return;
+  closeActions();
+}
+
+function onWindowKeydown(e) {
+  if (!actionsOpenFor.value) return;
+  if (e.key === "Escape") closeActions();
 }
 
 async function loadCategories() {
@@ -222,7 +281,15 @@ async function onDelete(c) {
 }
 
 onMounted(() => {
+  window.addEventListener("click", onWindowClick, true);
+  window.addEventListener("keydown", onWindowKeydown);
   loadSections();
   loadCategories();
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("click", onWindowClick, true);
+  window.removeEventListener("keydown", onWindowKeydown);
+  if (filterTimer) clearTimeout(filterTimer);
 });
 </script>

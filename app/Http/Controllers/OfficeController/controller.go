@@ -23,7 +23,12 @@ func New(db *gorm.DB) *OfficeController {
 
 func (ctl *OfficeController) Index(c *fiber.Ctx) error {
 	var offices []models.Office
-	if err := ctl.db.Order("id desc").Find(&offices).Error; err != nil {
+	name := strings.TrimSpace(c.Query("name"))
+	q := ctl.db.Model(&models.Office{})
+	if name != "" {
+		q = q.Where("name LIKE ?", "%"+name+"%")
+	}
+	if err := q.Order("id desc").Find(&offices).Error; err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
